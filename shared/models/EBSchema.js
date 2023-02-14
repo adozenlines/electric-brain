@@ -18,11 +18,14 @@
 
 "use strict";
 
+
+
 const
     Ajv = require('ajv'),
     assert = require('assert'),
     async = require('async'),
     deepdiff = require("deep-diff").diff,
+    EBClassFactory = require("../components/EBClassFactory"),
     EBConfusionMatrix = require("./EBConfusionMatrix"),
     EBFieldMetadata = require("./EBFieldMetadata"),
     stringUtilities = require("../utilities/string"),
@@ -54,6 +57,9 @@ class EBSchema
     constructor(rawSchema, depth)
     {
         const self = this;
+        
+        self.classType = "EBSchema";
+        
         self[_parent] = null;
 
         // rawSchema.type MUST be present
@@ -934,7 +940,10 @@ class EBSchema
                 {
                     // Decide whether we are going to keep the given variable
                     let newValue = iterator(variableName, subObject[variableName], schema.properties[variableName], subObject, schema);
-                    newValue = recurse(newValue, schema.properties[variableName]);
+                    if (!underscore.isUndefined(newValue))
+                    {
+                        newValue = recurse(newValue, schema.properties[variableName]);
+                    }
                     if (!underscore.isUndefined(newValue))
                     {
                         newObject[variableName] = newValue;
@@ -1838,5 +1847,6 @@ class EBSchema
     }
 }
 
+EBClassFactory.registerClass('EBSchema', EBSchema, EBSchema.schema());
 
 module.exports = EBSchema;

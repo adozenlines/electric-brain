@@ -89,69 +89,96 @@
             </div>
         </div>
         <div class="col-md-8">
-            <uib-tabset active="activeTab">
-                <uib-tab index="1" heading="Data">
-                    <div class="ibox float-e-margins" ng-if="activeTab === 1">
-                        <div class="ibox-content">
-                            <eb-data-browser eb-data-source="model.architecture.dataSource" eb-object-clicked="objectClicked"></eb-data-browser>
+            <div class="row">
+                <uib-tabset active="activeTab">
+                    <uib-tab index="1" heading="Data" ng-if="model.architecture.classType == 'EBTransformArchitecture'">
+                        <div class="ibox float-e-margins" ng-if="activeTab === 1">
+                            <div class="ibox-content">
+                                <eb-data-browser eb-data-source="model.architecture.dataSource" eb-object-clicked="objectClicked"></eb-data-browser>
+                            </div>
                         </div>
-                    </div>
-                </uib-tab>
-                <uib-tab index="2" heading="Accuracy" ng-if="model.training.status !='waiting'" select="reflowCharts()">
-                    <div class="training-charts" ng-if="activeTab === 2">
-                        <uib-tabset active="activeTrainingChart">
-                            <uib-tab index="0" heading="Accuracy" select="reflowCharts()">
-                                <highchart id="accuracyChart" config="accuracyChartConfig"></highchart>
-                            </uib-tab>
-                            <uib-tab index="1" heading="Loss" select="reflowCharts()">
-                                <highchart id="lossChart" config="lossChartConfig"></highchart>
-                            </uib-tab>
-                        </uib-tabset>
-                    </div>
-                </uib-tab>
-                <uib-tab index="3" heading="Accuracy Breakdown" ng-if="model.training.status !='waiting'">
-                    <div ng-if="activeTab === 3">
-                        <eb-schema-editor
-                                title="Results"
-                                schema="model.architecture.outputSchema"
-                                mode="results"
-                                show-field-details="false"
-                                show-only-included="true">
-                        </eb-schema-editor>
-                    </div>
-                </uib-tab>
-                <!--<uib-tab index="3" heading="Download" ng-if="model.training.status !='waiting'">-->
-                    <!--<h1>Select programming language for bundle</h1>-->
-                    <!--<br/>-->
-                    <!--<br/>-->
-                    <!--<eb-programming-language-selector ng-model="downloadLanguage"></eb-programming-language-selector>-->
-                    <!--<br/>-->
-                    <!--<br/>-->
-                    <!--<a ng-show="downloadLanguage" class="btn btn-primary" href="/api/models/{{model._id}}/bundle/{{downloadLanguage}}">Download bundle</a>-->
-                <!--</uib-tab>-->
-                <uib-tab index="4" heading="Integration" ng-if="model.training.status !='waiting'">
-                    <div ng-if="activeTab === 4">
-                        <h1>Integration API</h1>
+                    </uib-tab>
+                    <uib-tab index="2" heading="Accuracy" ng-if="model.training.status !='waiting'" select="reflowCharts()">
+                        <div class="training-charts" ng-if="activeTab === 2">
+                            <uib-tabset active="activeTrainingChart">
+                                <uib-tab index="0" heading="Accuracy" select="reflowCharts()">
+                                    <highchart id="accuracyChart" config="accuracyChartConfig"></highchart>
+                                </uib-tab>
+                                <uib-tab index="1" heading="Loss" select="reflowCharts()">
+                                    <highchart id="lossChart" config="lossChartConfig"></highchart>
+                                </uib-tab>
+                            </uib-tabset>
+                        </div>
+                    </uib-tab>
+                    <uib-tab index="3" heading="Accuracy Breakdown" ng-if="model.training.status !='waiting'">
+                        <div ng-if="activeTab === 3 && model.architecture.classType == 'EBMatchingArchitecture'">
+                            <eb-model-results model="model"></eb-model-results>
+                        </div>
+                        <div ng-if="activeTab === 3 && model.architecture.classType == 'EBTransformArchitecture'">
+                            <eb-schema-editor
+                                    title="Results"
+                                    schema="model.architecture.outputSchema"
+                                    mode="results"
+                                    show-field-details="false"
+                                    show-only-included="true">
+                            </eb-schema-editor>
+                        </div>
+                    </uib-tab>
+                    <uib-tab index="4" heading="Integration" ng-if="model.training.status !='waiting' && model.architecture.classType == 'EBTransformArchitecture'">
+                        <div ng-if="activeTab === 4">
+                            <h1>Integration API</h1>
+                            <br/>
+                            <br/>
+                            <h2>Endpoint</h2>
+                            <p>/api/models/{{model._id}}/process</p>
+                            <br/>
+                            <div swagger-ui input-type="json" input="modelAPISpec"></div>
+                        </div>
+                    </uib-tab>
+                    <uib-tab index="5" heading="Use Model" ng-if="model.training.status !='waiting' && model.architecture.classType == 'EBTransformArchitecture'">
+                        <div ng-if="activeTab === 5">
+                            <h1>Use your model</h1>
+                            <br/>
+                            <eb-object-builder schema="testInputSchema" object="$parent.testObject"></eb-object-builder>
+                            <br>
+                            <button class="btn btn-primary" ng-click="testModel()">Test Model</button>
+                            <br>
+                            <pre ng-show="testResult">{{testResult | json}}</pre>
+                        </div>
+                    </uib-tab>
+                    <uib-tab index="6" heading="Parameters">
+                        <div ng-if="activeTab === 6">
+                            <h1>Model Parameters</h1>
+                            <br/>
+                            <pre>{{model.parameters | json}}</pre>
+                        </div>
+                    </uib-tab>
+                    <uib-tab index="7" heading="Export" ng-if="model.training.status !='waiting' && model.architecture.classType == 'EBTransformArchitecture'">
+                        <h1>Export a Micro-API server</h1>
+                        <br/>
+                        <p>Here, the system can pack up a zip-file containing your trained neural network along with a micro-api server which can execute it.</p>
+                        <br/>
+                        <a class="btn btn-primary" ng-click="assembleBundle()" ng-if="model.bundle.status != 'in_progress'">Start Assembling Bundle</a>
                         <br/>
                         <br/>
-                        <h2>Endpoint</h2>
-                        <p>/api/models/{{model._id}}/process</p>
+                        <uib-progressbar ng-if="model.bundle.status != 'waiting'" max="100" value="model.bundle.percentageComplete" type="success">
+                            <p ng-show="model.bundle.step === 'downloading_model_parameters'">Download Model Parameters</p>
+                            <p ng-show="model.bundle.step === 'copying_eb_files'">Copying EB Files</p>
+                            <p ng-show="model.bundle.step === 'zipping'">Zipping Bundle</p>
+                            <p ng-show="model.bundle.step === 'uploading'">Uploading to Mongo</p>
+                            <p ng-show="model.bundle.step === 'cleaning'">Cleaning Up</p>
+                        </uib-progressbar>
                         <br/>
-                        <div swagger-ui input-type="json" input="modelAPISpec"></div>
-                    </div>
-                </uib-tab>
-                <uib-tab index="5" heading="Use Model" ng-if="model.training.status !='waiting'">
-                    <div ng-if="activeTab === 5">
-                        <h1>Use your model</h1>
                         <br/>
-                        <eb-object-builder schema="testInputSchema" object="$parent.testObject"></eb-object-builder>
-                        <br>
-                        <button class="btn btn-primary" ng-click="testModel()">Test Model</button>
-                        <br>
-                        <pre ng-show="testResult">{{testResult | json}}</pre>
-                    </div>
-                </uib-tab>
-            </uib-tabset>
+                        <a class="btn btn-primary" ng-if="model.bundle.status == 'complete'" href="/api/models/{{model._id}}/bundle">Download</a>
+                    </uib-tab>
+                </uib-tabset>
+            </div>
+            <div class="row" ng-if="model.training.status =='in_progress' && model.running">
+                <div class="col-xs-12">
+                    <eb-loader-button on-click="stopModel()" title="Stop Model">/eb-loader-button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -58,25 +58,8 @@ module.exports = function(grunt)
                 }
             }
         },
-        webpack: {
-            bundle: {
-                entry: "./server/bundle.js",
-                target: 'async-node',
-                output: {
-                    path: "build/",
-                    filename: "ebbundle.js",
-                    library: 'eb',
-                    libraryTarget: 'commonjs2'
-                },
-                module: {
-                    loaders: [
-                        { test: /\.json$/, loader: "json-loader" }
-                    ]
-                }
-            }
-        },
         unzip: {
-            'build/models/fieldinterpretation': 'models/fieldinterpretation.zip'
+            
         },
         uglify: {
             options: {
@@ -95,6 +78,14 @@ module.exports = function(grunt)
             },
             torch: {
                 src  : ['shared/file_templates/torch'],
+                dest : 'build/torch'
+            },
+            matchingPlugin: {
+                src  : ['plugins/matching_architecture/shared/file_templates'],
+                dest : 'build/torch'
+            },
+            transformPlugin: {
+                src  : ['plugins/transform_architecture/shared/file_templates'],
                 dest : 'build/torch'
             }
         },
@@ -120,6 +111,9 @@ module.exports = function(grunt)
                     }
                 ]
             }
+        },
+        curl: {
+            'data/english_word_vectors.sqlite3': 'https://blkstr.ca/9adaf58071dd4e548422bbd3a7239458/Downloads/english_word_vectors.sqlite3'
         }
     });
 
@@ -148,11 +142,12 @@ module.exports = function(grunt)
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-curl');
+    grunt.loadNpmTasks('grunt-if-missing');
     grunt.loadNpmTasks('grunt-mkdir');
-    grunt.loadNpmTasks('grunt-webpack');
     grunt.loadNpmTasks('grunt-zip');
 
     // Default task(s).
-    grunt.registerTask('default', ['mkdir:dev', 'dot:torch', 'dot:frontend', 'browserify:dev', 'webpack:bundle', 'uglify:dev', 'copy:dev', 'unzip']);
-    grunt.registerTask('worker', ['dot:torch']);
+    grunt.registerTask('default', ['mkdir:dev', 'dot:torch', 'dot:matchingPlugin', 'dot:transformPlugin', 'dot:frontend', 'browserify:dev', 'uglify:dev', 'copy:dev', 'if-missing:curl']);
+    grunt.registerTask('worker', ['dot:torch', 'dot:matchingPlugin', 'dot:transformPlugin']);
 };

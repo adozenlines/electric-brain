@@ -17,7 +17,9 @@
  */
 
 "use strict";
-const underscore = require('underscore');
+
+const underscore = require('underscore'),
+    EBClassFactory = require("../components/EBClassFactory");
 
 /**
  *  EBRollingAverage is a simple tool that keeps track of a rolling average over some time scale.
@@ -34,6 +36,8 @@ class EBRollingAverage
     constructor(rawRollingAverage)
     {
         const self = this;
+        
+        self.type = 'EBRollingAverage';
 
         self.period = rawRollingAverage.period;
         self.value = rawRollingAverage.value;
@@ -93,5 +97,7 @@ class EBRollingAverage
         };
     }
 }
+
+EBClassFactory.registerClass('EBRollingAverage', EBRollingAverage, EBRollingAverage.schema());
 
 module.exports = EBRollingAverage;

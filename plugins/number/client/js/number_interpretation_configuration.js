@@ -27,12 +27,14 @@ angular.module('eb').directive('ebNumberInterpretationConfiguration', function e
     {
         $scope.numberConfigurationValues = [
             'discrete',
-            'continuous'
+            'continuous_raw',
+            'continuous_normalized'
         ];
 
         $scope.numberConfigurationTitles = [
             'Discrete',
-            'Continuous'
+            'Continuous (Raw)',
+            'Continuous (Normalized Z-Scores)'
         ];
         
         $scope.scalingFunctionValues = [
@@ -67,12 +69,16 @@ angular.module('eb').directive('ebNumberInterpretationConfiguration', function e
                     ];
                 }
             }
-            else if (newValue === 'continuous')
+            else if (newValue === 'continuous_raw')
             {
                 if (!$scope.field.configuration.interpretation.scalingFunction)
                 {
                     $scope.field.configuration.interpretation.scalingFunction = 'linear';
                 }
+            }
+            else if (newValue === 'continuous_normalized')
+            {
+                // Do nothing
             }
         });
 

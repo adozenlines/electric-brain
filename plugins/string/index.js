@@ -30,6 +30,7 @@ module.exports = {
     "interpretations": {'string': EBStringInterpretation},
     "neuralNetworkComponents": {
         'word': EBNeuralNetworkWordComponent
-    }
+    },
+    "architecturePlugins": {}
 };
 

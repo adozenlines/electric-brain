@@ -26,6 +26,7 @@
 angular.module('eb').controller('EBDataSourceUploadFileController', function EBDataSourceUploadFileController($scope, $timeout, $state, $stateParams, EBDataSourceService, config, EBLoaderService, EBNavigationBarService)
 {
     $scope.sampleSize = 500;
+    $scope.allowQuotedCSVFiles = true;
     $scope.upload = function upload()
     {
         return new Promise(function(resolve, reject)
@@ -65,6 +66,7 @@ angular.module('eb').controller('EBDataSourceUploadFileController', function EBD
                         $scope.dataSource.type = 'csv';
                         $scope.dataSource.file = (/.*\/(.*)/g).exec(upload.url)[1];
                         $scope.dataSource.sampleSize = $scope.sampleSize;
+                        $scope.dataSource.allowQuotedCSVFiles = $scope.allowQuotedCSVFiles;
 
                         const promise = EBDataSourceService.createDataSource($scope.dataSource).then((body) =>
                         {

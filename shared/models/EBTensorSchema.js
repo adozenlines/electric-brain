@@ -21,6 +21,7 @@
 const
     Ajv = require('ajv'),
     assert = require('assert'),
+    EBClassFactory = require("../components/EBClassFactory"),
     underscore = require('underscore');
 
 /**
@@ -40,6 +41,8 @@ class EBTensorSchema
 
         assert(rawTensorSchema.type);
         assert(!underscore.isUndefined(rawTensorSchema.variableName));
+        
+        this.classType = "EBTensorSchema";
 
         this.type = rawTensorSchema.type;
         this.variableName = rawTensorSchema.variableName;
@@ -318,5 +321,7 @@ class EBTensorSchema
         }
     }
 }
+
+EBClassFactory.registerClass('EBTensorSchema', EBTensorSchema, EBTensorSchema.schema());
 
 module.exports = EBTensorSchema;

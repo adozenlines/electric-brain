@@ -23,9 +23,11 @@ const
     bodyParser = require('body-parser'),
     convict = require("convict"),
     express = require("express"),
+    EBApplicationBase = require('./EBApplicationBase'),
     EBDataSourcePluginDispatch = require("./components/datasource/EBDataSourcePluginDispatch"),
     EBNeuralNetworkComponentDispatch = require("../shared/components/architecture/EBNeuralNetworkComponentDispatch"),
     EBInterpretationRegistry = require("./components/datasource/EBInterpretationRegistry"),
+    EBArchitecturePluginRegistry = require("./components/architecture/EBArchitecturePluginRegistry"),
     flattener = require('./middleware/flattener'),
     fs = require("fs"),
     http = require('http'),
@@ -39,49 +41,17 @@ const
 /**
  *  This class is the root application object, which represents the EB API server as a whole
  */
-class EBApplication
+class EBApplication extends EBApplicationBase
 {
     /**
      * Constructor for the application
      */
     constructor()
     {
+        super();
+        
         this.config = convict(this.configuration());
-
-        // Initialize each of the modules that we find in pages
-        const polyfills = fs.readdirSync(`${__dirname}/../shared/polyfill`);
-        polyfills.forEach((polyfillFilename) =>
-        {
-            require(`../shared/polyfill/${polyfillFilename}`);
-        });
-
-        // Initialize any mods
-        const mods = fs.readdirSync(`${__dirname}/mods`);
-        mods.forEach((modFilename) =>
-        {
-            require(`./mods/${modFilename}`).apply();
-        });
-
-        // Load any plugins that are found in the various plugin directories
-        const pluginDirectories = [
-            path.join(__dirname, '..', 'plugins'),
-            path.join(__dirname, '..', 'extraplugins')
-        ];
-
-        this.plugins = [];
-        pluginDirectories.forEach((directory) =>
-        {
-            const pluginNames = fs.readdirSync(directory);
-            pluginNames.forEach((pluginFilename) =>
-            {
-                if (fs.statSync(path.join(directory, pluginFilename)).isDirectory())
-                {
-                    this.plugins.push(require(path.join(directory, pluginFilename)));
-                }
-            });
-        });
-
-
+        
         // Create our task registry. All taskRegistry should have explicit timeouts set.
         this.taskRegistry = new beaver.Registry({});
 
@@ -135,26 +105,6 @@ class EBApplication
 
         // Setup the global tasks with a reference to this application object
         tasks.setupTasks(this);
-        
-        // Set up the main data source plugin
-        this.dataSourcePluginDispatch = new EBDataSourcePluginDispatch();
-        this.neuralNetworkComponentDispatch = new EBNeuralNetworkComponentDispatch();
-        this.interpretationRegistry = new EBInterpretationRegistry();
-
-        this.plugins.forEach((plugin) =>
-        {
-            const interpretationNames = Object.keys(plugin.interpretations || {});
-            interpretationNames.forEach((name) =>
-            {
-                this.interpretationRegistry.addInterpretation(new plugin.interpretations[name](this.interpretationRegistry));
-            });
-            
-            const neuralNetworkComponentNames = Object.keys(plugin.neuralNetworkComponents || {});
-            neuralNetworkComponentNames.forEach((name) =>
-            {
-                this.neuralNetworkComponentDispatch.registerPlugin(name, new plugin.neuralNetworkComponents[name](this.neuralNetworkComponentDispatch))
-            });
-        });
     }
 
     /**
@@ -196,11 +146,35 @@ class EBApplication
                 env: "Mongo"
             },
             overrideModelFolder: {
-                doc: "This method overrides the default temporary folder where model code is stored.",
+                doc: "This config overrides the default temporary folder where model code is stored.",
                 format: String,
                 default: '',
                 env: "MODEL_FOLDER"
             },
+            companyName: {
+                doc: "This config is used to specify what the company name is on the frontend. Used for white-labelling",
+                format: String,
+                default: 'Electric Brain Software Corporation',
+                env: "COMPANY_NAME"
+            },
+            softwareName: {
+                doc: "This config is used to specify what the software name is on the frontend. Used for white-labelling",
+                format: String,
+                default: 'Electric Brain',
+                env: "SOFTWARE_NAME"
+            },
+            licenseFile: {
+                doc: "This config is used to set the license file that will be displayed on the frontend",
+                format: String,
+                default: path.join(__dirname, '..', 'LICENSE'),
+                env: "LICENSE_FILE"
+            },
+            logoFile: {
+                doc: "This config is used to set the logo that will be used on the frontend. Used for white-labelling.",
+                format: String,
+                default: "img/logo/logo_menu.svg",
+                env: "LOGO_FILE"
+            }
         };
     }
 
@@ -275,9 +249,13 @@ class EBApplication
             self.socketio = socketio(server);
             self.socketio.on('connection', function(socket)
             {
-                console.log('a user connected');
                 socket.join('general');
+                socket.on('command-model', function(data)
+                {
+                    self.socketio.to('general').emit(`command-model-${data.id}`, data);
+                });
             });
+
 
             // Set up realtime to using RabbitMQ for publish-subscribe
             self.socketio.adapter(socketioAMQP(self.config.get('amqp'), {prefix: 'electricbrain-'}));

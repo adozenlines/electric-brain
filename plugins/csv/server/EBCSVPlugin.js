@@ -37,7 +37,7 @@ class EBCSVPlugin extends EBDataSourcePlugin
     /**
      *  The constructor for the EBCSVPlugin
      *
-     * @param {EBApplication} application The global EBApplication object.
+     * @param {EBApplicationBase} application The global EBApplication object.
      */
     constructor(application)
     {
@@ -145,11 +145,17 @@ class EBCSVPlugin extends EBDataSourcePlugin
                     {
                         const stream = this.uploads.openDownloadStream(new mongodb.ObjectID(dataSource.file));
 
-                        const csvStream = csv({
+                        const options = {
                             objectMode: true,
                             headers: true
-                        });
+                        };
 
+                        if (!dataSource.allowQuotedCSVFiles)
+                        {
+                            options.quote = null;
+                        }
+
+                        const csvStream = csv(options);
                         const cargo = async.cargo((objects, next) =>
                         {
                             objects.forEach(function(object)
@@ -305,6 +311,11 @@ class EBCSVPlugin extends EBDataSourcePlugin
                     {
                         resolve();
                     };
+
+                    cargo.error = (err) =>
+                    {
+                        reject(err);
+                    };
                 }, (err) => reject(err));
             }, (err) => reject(err));
         });
@@ -348,122 +359,6 @@ class EBCSVPlugin extends EBDataSourcePlugin
                 });
             });
         });
-    }
-
-    /**
-     * This method will convert all of the string values in the Mongo query portion provided into
-     * mongo.ObjectIDs
-     *
-     * @param {object} queryPortion The portion of the query to recursively coerce.
-     */
-    static recursiveCoerceMongoID(queryPortion)
-    {
-        if (underscore.isString(queryPortion))
-        {
-            return new mongodb.ObjectId(queryPortion);
-        }
-        else if (underscore.isArray(queryPortion))
-        {
-            return queryPortion.map((arrayValue) => EBCSVPlugin.recursiveCoerceMongoID(arrayValue));
-        }
-        else if (underscore.isObject(queryPortion))
-        {
-            return underscore.mapObject(queryPortion, function(value)
-            {
-                return EBCSVPlugin.recursiveCoerceMongoID(value);
-            });
-        }
-        else
-        {
-            return queryPortion;
-        }
-    }
-
-    /**
-     * This method will convert all of the string values in the Mongo query portion provided into
-     * mongo.ObjectIDs
-     *
-     * @param {object} queryPortion The portion of the query to recursively coerce.
-     */
-    static recursiveCoerceMongoID(queryPortion)
-    {
-        if (underscore.isString(queryPortion))
-        {
-            return new mongodb.ObjectId(queryPortion);
-        }
-        else if (underscore.isArray(queryPortion))
-        {
-            return queryPortion.map((arrayValue) => EBCSVPlugin.recursiveCoerceMongoID(arrayValue));
-        }
-        else if (underscore.isObject(queryPortion))
-        {
-            return underscore.mapObject(queryPortion, function(value)
-            {
-                return EBCSVPlugin.recursiveCoerceMongoID(value);
-            });
-        }
-        else
-        {
-            return queryPortion;
-        }
-    }
-
-    /**
-     * This method will convert all of the string values in the Mongo query portion provided into
-     * mongo.ObjectIDs
-     *
-     * @param {object} queryPortion The portion of the query to recursively coerce.
-     */
-    static recursiveCoerceMongoID(queryPortion)
-    {
-        if (underscore.isString(queryPortion))
-        {
-            return new mongodb.ObjectId(queryPortion);
-        }
-        else if (underscore.isArray(queryPortion))
-        {
-            return queryPortion.map((arrayValue) => EBCSVPlugin.recursiveCoerceMongoID(arrayValue));
-        }
-        else if (underscore.isObject(queryPortion))
-        {
-            return underscore.mapObject(queryPortion, function(value)
-            {
-                return EBCSVPlugin.recursiveCoerceMongoID(value);
-            });
-        }
-        else
-        {
-            return queryPortion;
-        }
-    }
-
-    /**
-     * This method will convert all of the string values in the Mongo query portion provided into
-     * mongo.ObjectIDs
-     *
-     * @param {object} queryPortion The portion of the query to recursively coerce.
-     */
-    static recursiveCoerceMongoID(queryPortion)
-    {
-        if (underscore.isString(queryPortion))
-        {
-            return new mongodb.ObjectId(queryPortion);
-        }
-        else if (underscore.isArray(queryPortion))
-        {
-            return queryPortion.map((arrayValue) => EBCSVPlugin.recursiveCoerceMongoID(arrayValue));
-        }
-        else if (underscore.isObject(queryPortion))
-        {
-            return underscore.mapObject(queryPortion, function(value)
-            {
-                return EBCSVPlugin.recursiveCoerceMongoID(value);
-            });
-        }
-        else
-        {
-            return queryPortion;
-        }
     }
 
     /**

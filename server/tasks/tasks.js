@@ -18,13 +18,15 @@
 
 const beaver = require('beaver');
 
-const EBTrainModelTask = require("./EBTrainModelTask");
+const EBTrainMatchingModelTask = require("../../plugins/matching_architecture/server/EBTrainMatchingModelTask");
+const EBTrainTransformModelTask = require("../../plugins/transform_architecture/server/EBTrainTransformModelTask");
 const EBSampleDataSourceTask = require("./EBSampleDataSourceTask");
+const EBAssembleNodeBundleTask = require("./EBAssembleNodeBundleTask");
 
 /**
  * This function initializes all of the Beaver tasks for Electric Brain
  *
- * @param {EBApplication} application This is a reference to the root EBApplication object
+ * @param {EBApplicationBase} application This is a reference to the root EBApplication object
  */
 function setupTasks(application)
 {
@@ -42,11 +44,20 @@ function setupTasks(application)
     }
 
     application.taskRegistry.registerTask({
-        name: "train_model",
+        name: "train_transform_model",
         timeout: null, // no timeout. This can take forever.
         concurrencyPerWorker: 1,
         maximumAttempts: 2,
-        func: wrapTaskClass(EBTrainModelTask)
+        func: wrapTaskClass(EBTrainTransformModelTask)
+    });
+
+
+    application.taskRegistry.registerTask({
+        name: "train_matching_model",
+        timeout: null, // no timeout. This can take forever.
+        concurrencyPerWorker: 1,
+        maximumAttempts: 2,
+        func: wrapTaskClass(EBTrainMatchingModelTask)
     });
 
 
@@ -56,6 +67,15 @@ function setupTasks(application)
         concurrencyPerWorker: 1,
         maximumAttempts: 2,
         func: wrapTaskClass(EBSampleDataSourceTask)
+    });
+
+
+    application.taskRegistry.registerTask({
+        name: "assemble_bundle",
+        timeout: null, // no timeout. This can take forever.
+        concurrencyPerWorker: 1,
+        maximumAttempts: 2,
+        func: wrapTaskClass(EBAssembleNodeBundleTask)
     });
 }
 

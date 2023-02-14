@@ -24,9 +24,6 @@ module.exports = {
     "EBArchitecture": require('./EBArchitecture'),
     "EBCustomQuery": require('./EBCustomQuery'),
     "EBModel": require('./EBModel'),
-    "EBTorchNode": require('./EBTorchNode'),
-    "EBTorchModule": require('./EBTorchModule'),
-    "EBTorchCustomModule": require('./EBTorchCustomModule'),
     "EBNeuralNetworkEditorModule": require("./EBNeuralNetworkEditorModule"),
-    "EBNeuralNetworkTemplateGenerator": require("./EBNeuralNetworkTemplateGenerator")
+    "EBNeuralNetworkTemplateGenerator": require("./../components/EBNeuralNetworkTemplateGenerator")
 };

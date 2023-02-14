@@ -21,7 +21,7 @@
 /**
  * Represents a single field in the schema editor
  */
-angular.module('eb').directive('ebSchemaEditorField', function ebSchemaEditorField($timeout, EBDataSourceService)
+angular.module('eb').directive('ebSchemaEditorField', function ebSchemaEditorField($timeout, EBDataSourceService, $interval)
 {
     function controller($scope, $element, $attrs)
     {
@@ -45,6 +45,29 @@ angular.module('eb').directive('ebSchemaEditorField', function ebSchemaEditorFie
 
             field.setIncluded(!field.configuration.included);
         };
+
+        $scope.grabLink = function($event)
+        {
+            $scope.$emit('slot-selected', {
+                field: $scope.field
+            });
+        };
+
+        if ($scope.mode === 'linkage')
+        {
+            $timeout(function()
+            {
+                $element.find('.linkage-element').each((index, linkageElement) =>
+                {
+                    $scope.$emit('register-slot', {
+                        slotSide: $scope.slotSide || "n/a",
+                        field: $scope.field,
+                        x: $(linkageElement).offset().left + 11,
+                        y: $(linkageElement).offset().top + 11
+                    });
+                });
+            }, 25);
+        }
     }
 
     return {
@@ -55,6 +78,7 @@ angular.module('eb').directive('ebSchemaEditorField', function ebSchemaEditorFie
             field: '=ebSchemaEditorField',
             selectedField: '=',
             mode: '@',
+            slotSide: '@',
             showOnlyIncluded: '='
         }
     };

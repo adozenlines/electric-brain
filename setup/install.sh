@@ -112,7 +112,8 @@ installation_main()
     if [[ `uname` == 'Darwin' ]]; then
         install_dependencies_darwin
         install_torch
-        install_electric_brain
+        # Must be run without sudo on mac
+        npm install electricbrain -g
     elif [[ `uname` == 'Linux' ]]; then
         if [[ -r /etc/os-release ]]; then
             # this will get the required information without dirtying any env state

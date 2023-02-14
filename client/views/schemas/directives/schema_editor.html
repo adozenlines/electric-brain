@@ -27,7 +27,7 @@
                     <div class="ibox-content">
                         <div ui-tree id="tree-root" class="schema-tree" data-drag-enabled="false">
                             <ol ui-tree-nodes ng-model="schema">
-                                <li ng-repeat="field in schema.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" selected-field="$parent.$parent.$parent.$parent.selectedField" show-only-included="showOnlyIncluded"></li>
+                                <li ng-repeat="field in schema.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" slot-side="{{slotSide}}" selected-field="$parent.$parent.$parent.$parent.selectedField" show-only-included="showOnlyIncluded"></li>
                             </ol>
                         </div>
                     </div>

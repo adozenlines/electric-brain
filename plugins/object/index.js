@@ -28,6 +28,7 @@ module.exports = {
     "folder": __dirname,
     "dataSources": {},
     "interpretations": {'object': EBObjectInterpretation},
-    "neuralNetworkComponents": {'object': EBNeuralNetworkObjectComponent}
+    "neuralNetworkComponents": {'object': EBNeuralNetworkObjectComponent},
+    "architecturePlugins": {}
 };
 

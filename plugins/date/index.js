@@ -27,6 +27,7 @@ module.exports = {
     "folder": __dirname,
     "dataSources": {},
     "interpretations": {'date': EBDateInterpretation},
-    "neuralNetworkComponents": {}
+    "neuralNetworkComponents": {},
+    "architecturePlugins": {}
 };
 

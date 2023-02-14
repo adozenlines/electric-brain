@@ -24,7 +24,6 @@
  */
 angular.module('eb').controller('EBNewModelController', function EBNewModelControlle($scope, $stateParams, $state, EBModelService, EBNavigationBarService, EBSocketService)
 {
-    $scope.workingDatabaseURI = "mongodb://localhost:27017/electric_brain_testing";
     $scope.model = new shared.models.EBModel({"name": ""});
 
     $scope.onArchitectureClicked = function onArchitectureClicked()
@@ -47,6 +46,131 @@ angular.module('eb').controller('EBNewModelController', function EBNewModelContr
                 $state.go('view_model', {id: id});
             });
         });
-
     };
+
+    $scope.$watch('model.parameters.optimizationAlgorithm', function(newValue, oldValue)
+    {
+        if (newValue)
+        {
+            const optimFunction = _.find($scope.optimizationAlgorithms, (func) => func.name === newValue);
+
+            console.log(newValue)
+            console.log(optimFunction)
+            $scope.model.parameters.optimizationParameters = _.clone(optimFunction.parameters);
+        }
+    });
+
+    $scope.optimizationAlgorithms = [
+        {
+            "name": "sgd",
+            "title": "Stochastic Gradient Descent",
+            "parameters": {
+                "learningRate": 1e-3,
+                "learningRateDecay": 0,
+                "weightDecay": 0,
+                "momentum": 0,
+                "dampening": 0,
+                "nesterov": 0
+            }
+        },
+        {
+            "name": "asgd",
+            "title": "Averaged Stochastic Gradient Descent",
+            "parameters": {
+                "eta0": 1e-4,
+                "lambda": 1e-4,
+                "alpha": 0.75,
+                "t0": 1e6
+            }
+        },
+        {
+            "name": "cg",
+            "title": "Conjugate Gradient",
+            "parameters": {
+                "rho": 0.01,
+                "sig": 0.5,
+                "int": 0.1,
+                "ext": 3.0,
+                "maxIter": 20,
+                "ratio": 100,
+                "maxEval": 25
+            }
+        },
+        {
+            "name": "adadelta",
+            "title": "AdaDelta",
+            "parameters": {
+                "rho": 0.9,
+                "eps": 1e-6,
+                "weightDecay": 0
+            }
+        },
+        {
+            "name": "adagrad",
+            "title": "AdaGrad",
+            "parameters": {
+                "learningRate": 1e-3,
+                "learningRateDecay": 0,
+                "weightDecay": 0
+            }
+        },
+        {
+            "name": "adam",
+            "title": "Adam",
+            "parameters": {
+                "learningRate": 1e-3,
+                "learningRateDecay": 0,
+                "beta1": 0.9,
+                "beta2": 0.999,
+                "epsilon": 1e-8,
+                "weightDecay": 0
+            }
+        },
+        {
+            "name": "adamax",
+            "title": "AdaMax",
+            "parameters": {
+                "learningRate": 2e-3,
+                "beta1": 0.9,
+                "beta2": 0.999,
+                "epsilon": 1e-38,
+                "weightDecay": 0
+            }
+        },
+        {
+            "name": "nag",
+            "title": "Nesterov's Accelerated Gradient",
+            "parameters": {
+                "learningRate": 1e-3,
+                "learningRateDecay": 0,
+                "weightDecay": 0,
+                "momentum": 0.9,
+                "dampening": 0.9
+            }
+        },
+        {
+            "name": "rmsprop",
+            "title": "RMSProp",
+            "parameters": {
+                "learningRate": 1e-2,
+                "alpha": 0.99,
+                "epsilon": 1e-8,
+                "weightDecay": 0,
+                "initialMean": 0
+            }
+        },
+        {
+            "name": "rprop",
+            "title": "RProp",
+            "parameters": {
+                "stepsize": 0.1,
+                "etaplus": 1.2,
+                "etaminus": 0.5,
+                "stepsizemax": 50,
+                "stepsizemin": 1e-6,
+                "niter": 1
+            }
+        }
+    ];
+    
 });

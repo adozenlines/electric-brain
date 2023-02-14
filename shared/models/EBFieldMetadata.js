@@ -20,6 +20,7 @@
 
 const
     async = require('async'),
+    EBClassFactory = require("../components/EBClassFactory"),
     EBNumberHistogram = require('./EBNumberHistogram'),
     EBValueHistogram = require("./EBValueHistogram"),
     underscore = require('underscore');
@@ -39,6 +40,8 @@ class EBFieldMetadata
     constructor(rawFieldMetadata)
     {
         const self = this;
+        
+        self.type = 'EBFieldMetadata';
 
         if (!rawFieldMetadata)
         {
@@ -105,5 +108,7 @@ class EBFieldMetadata
         };
     }
 }
+
+EBClassFactory.registerClass('EBFieldMetadata', EBFieldMetadata, EBFieldMetadata.schema());
 
 module.exports = EBFieldMetadata;

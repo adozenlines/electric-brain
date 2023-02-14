@@ -66,6 +66,10 @@ angular.module('eb').directive('ebSchemaEditor', function ebSchemaEditor()
             {
                 $scope.fieldListSize = 'col-md-4';
             }
+            else if ($scope.mode === 'linkage')
+            {
+                $scope.fieldListSize = 'col-md-12';
+            }
             
             function findFirstField(schema)
             {
@@ -112,7 +116,8 @@ angular.module('eb').directive('ebSchemaEditor', function ebSchemaEditor()
             schema: '=',
             showFieldDetails: '=',
             showOnlyIncluded: '@',
-            mode: '@'
+            mode: '@',
+            slotSide: '@'
         },
         transclude: true
     };

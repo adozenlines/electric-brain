@@ -22,9 +22,13 @@ const
     Ajv = require('ajv'),
     async = require('async'),
     EBAPIRoot = require('./EBAPIRoot'),
+    EBClassFactory = require("../../shared/components/EBClassFactory"),
     EBCustomTransformationProcess = require("../components/architecture/EBCustomTransformationProcess"),
+    EBMatchingArchitecture = require("../../plugins/matching_architecture/shared/models/EBMatchingArchitecture"),
     EBSchemaDetector = require("../components/datasource/EBSchemaDetector"),
-    EBTorchProcess = require("../components/architecture/EBTorchProcess"),
+    EBMatchingTorchProcess = require("../../plugins/matching_architecture/server/EBMatchingTorchProcess"),
+    EBTransformTorchProcess = require("../../plugins/transform_architecture/server/EBTransformTorchProcess"),
+    EBTransformArchitecture = require("../../plugins/transform_architecture/shared/models/EBTransformArchitecture"),
     idUtilities = require("../utilities/id"),
     models = require('../../shared/models/models'),
     Promise = require('bluebird'),
@@ -55,19 +59,18 @@ class EBArchitectureAPI extends EBAPIRoot
      */
     setupEndpoints(expressApplication)
     {
-        this.architectureOutputSchema = schemaUtilities.getReducedSchema("ArchitectureOutput", models.EBArchitecture.schema(), {
-            "_id": true,
-            "name": true,
-            "dataSource": true,
-            "inputSchema": true,
-            "outputSchema": true
-        });
+        const architectureSchema = {
+            "anyOf": [
+                EBTransformArchitecture.schema(),
+                EBMatchingArchitecture.schema()
+            ]
+        };
 
         this.registerEndpoint(expressApplication, {
             "name": "CreateArchitecture",
             "uri": "/architectures",
             "method": "POST",
-            "inputSchema": models.EBArchitecture.schema(),
+            "inputSchema": architectureSchema,
             "outputSchema": {
                 "id": "/CreateArchitectureOutput",
                 "type": "object",
@@ -100,7 +103,7 @@ class EBArchitectureAPI extends EBAPIRoot
                 "properties": {
                     "architectures": {
                         "type": "array",
-                        "items": this.architectureOutputSchema
+                        "items": architectureSchema
                     }
                 }
             },
@@ -147,7 +150,7 @@ class EBArchitectureAPI extends EBAPIRoot
             "uri": "/architectures/:id",
             "method": "GET",
             "inputSchema": {},
-            "outputSchema": this.architectureOutputSchema,
+            "outputSchema": architectureSchema,
             "handler": this.getArchitecture.bind(this)
         });
 
@@ -155,10 +158,7 @@ class EBArchitectureAPI extends EBAPIRoot
             "name": "EditArchitecture",
             "uri": "/architectures/:id",
             "method": "PUT",
-            "inputSchema": schemaUtilities.getReducedSchema("EditArchitectureInput", models.EBArchitecture.schema(), {
-                "inputSchema": true,
-                "outputSchema": true
-            }),
+            "inputSchema": architectureSchema,
             "outputSchema": {
                 "id": "/EditArchitectureOutput",
                 "type": "object",
@@ -205,6 +205,7 @@ class EBArchitectureAPI extends EBAPIRoot
 
             const newArchitecture = req.body;
             newArchitecture._id = id;
+            newArchitecture.createdAt = new Date();
             self.architectures.insert(newArchitecture, function(err, info)
             {
                 if (err)
@@ -237,7 +238,7 @@ class EBArchitectureAPI extends EBAPIRoot
 
         const options = {
             sort: {
-                lastViewedAt: -1,
+                createdAt: -1,
                 _id: -1
             },
             limit: limit
@@ -246,6 +247,9 @@ class EBArchitectureAPI extends EBAPIRoot
         if (req.query.select)
         {
             options.fields = underscore.object(req.query.select, new Array(req.query.select.length).fill(1));
+            
+            // Make sure to request the class-types
+            options.fields.classType = 1;
         }
 
         const queryObject = this.architectures.find({}, options);
@@ -270,7 +274,7 @@ class EBArchitectureAPI extends EBAPIRoot
      */
     getArchitecture(req, res, next)
     {
-        this.architectures.findOneAndUpdate({_id: Number(req.params.id)}, {$set: {lastViewedAt: new Date()}}, function(err, result)
+        this.architectures.findOne({_id: Number(req.params.id)}, function(err, result)
         {
             if (err)
             {
@@ -282,7 +286,7 @@ class EBArchitectureAPI extends EBAPIRoot
             }
             else
             {
-                return next(null, result.value);
+                return next(null, result);
             }
         });
     }
@@ -354,81 +358,83 @@ class EBArchitectureAPI extends EBAPIRoot
      */
     getTransformedSample(req, res, next)
     {
-        const self = this;
-        this.architectures.findOne({_id: Number(req.params.id)}, function(err, architectureObject)
-        {
-            if (err)
-            {
-                return next(err);
-            }
-            else if (!architectureObject)
-            {
-                return next(new Error("EBArchitecture not found!"));
-            }
-            else
-            {
-                const schemaDetector = new EBSchemaDetector(self.application);
-                const numberOfObjectsToSample = 500;
-                const architecture = new models.EBArchitecture(architectureObject);
-                const sourceSchema = architecture.dataSource.dataSchema.filterIncluded();
-                const filterFunction = sourceSchema.filterFunction();
-
-                const transformStream = EBCustomTransformationProcess.createCustomTransformationStream(architecture);
-                transformStream.on('data', function(object)
-                {
-                    transformStream.pause();
-                    schemaDetector.accumulateObject(object, false).then(() =>
-                    {
-                        transformStream.resume();
-                    }, (err) =>
-                    {
-                        console.error(err);
-                        throw err;
-                    });
-                });
-                transformStream.on('error', function(error)
-                {
-                    return next(error);
-                });
-
-                // Sample the datasource
-                self.application.dataSourcePluginDispatch.sample(numberOfObjectsToSample, architecture.dataSource, function(object)
-                {
-                    return Promise.fromCallback(function(next)
-                    {
-                        try
-                        {
-                            const filteredObject = filterFunction(object);
-                            transformStream.write(filteredObject, next);
-                        }
-                        catch (err)
-                        {
-                            console.error(`Object in our database is not valid according to our data schema: ${err.toString()}`);
-                            return next(err);
-                        }
-                    });
-                }).then(function success()
-                {
-                    transformStream.end(function(err)
-                    {
-                        if (err)
-                        {
-                            return next(err);
-                        }
-
-                        const schema = schemaDetector.getSchema();
-
-                        schema.walk((field) =>
-                        {
-                            field.configuration.interpretation = self.application.interpretationRegistry.getInterpretation(field.metadata.mainInterpretation).generateDefaultConfiguration(field);
-                        });
-
-                        const result = {schema: schema};
-                        return next(null, result);
-                    });
-                }, (err) => next(err));
-            }
-        });
+        // Need to update!
+        
+        // const self = this;
+        // this.architectures.findOne({_id: Number(req.params.id)}, function(err, architectureObject)
+        // {
+        //     if (err)
+        //     {
+        //         return next(err);
+        //     }
+        //     else if (!architectureObject)
+        //     {
+        //         return next(new Error("EBArchitecture not found!"));
+        //     }
+        //     else
+        //     {
+        //         const schemaDetector = new EBSchemaDetector(self.application);
+        //         const numberOfObjectsToSample = 500;
+        //         const architecture = EBClassFactory.createObject(architectureObject);
+        //         const sourceSchema = architecture.dataSource.dataSchema.filterIncluded();
+        //         const filterFunction = sourceSchema.filterFunction();
+        //
+        //         const transformStream = EBCustomTransformationProcess.createCustomTransformationStream(architecture);
+        //         transformStream.on('data', function(object)
+        //         {
+        //             transformStream.pause();
+        //             schemaDetector.accumulateObject(object, false).then(() =>
+        //             {
+        //                 transformStream.resume();
+        //             }, (err) =>
+        //             {
+        //                 console.error(err);
+        //                 throw err;
+        //             });
+        //         });
+        //         transformStream.on('error', function(error)
+        //         {
+        //             return next(error);
+        //         });
+        //
+        //         // Sample the datasource
+        //         self.application.dataSourcePluginDispatch.sample(numberOfObjectsToSample, architecture.dataSource, function(object)
+        //         {
+        //             return Promise.fromCallback(function(next)
+        //             {
+        //                 try
+        //                 {
+        //                     const filteredObject = filterFunction(object);
+        //                     transformStream.write(filteredObject, next);
+        //                 }
+        //                 catch (err)
+        //                 {
+        //                     console.error(`Object in our database is not valid according to our data schema: ${err.toString()}`);
+        //                     return next(err);
+        //                 }
+        //             });
+        //         }).then(function success()
+        //         {
+        //             transformStream.end(function(err)
+        //             {
+        //                 if (err)
+        //                 {
+        //                     return next(err);
+        //                 }
+        //
+        //                 const schema = schemaDetector.getSchema();
+        //
+        //                 schema.walk((field) =>
+        //                 {
+        //                     field.configuration.interpretation = self.application.interpretationRegistry.getInterpretation(field.metadata.mainInterpretation).generateDefaultConfiguration(field);
+        //                 });
+        //
+        //                 const result = {schema: schema};
+        //                 return next(null, result);
+        //             });
+        //         }, (err) => next(err));
+        //     }
+        // });
     }
 
 
@@ -454,8 +460,10 @@ class EBArchitectureAPI extends EBAPIRoot
             }
             else
             {
-                const architecture = new models.EBArchitecture(architectureObject);
-                const process = new EBTorchProcess(architecture, self.application.config.get('overrideModelFolder'));
+                const architecture = EBClassFactory.createObject(architectureObject);
+                const architecturePlugin = self.application.architectureRegistry.getPluginForArchitecture(architecture);
+                let process = architecturePlugin.getTorchProcess(architecture, self.application.config.get('overrideModelFolder'));
+                
                 async.series([
                     function generateCode(next)
                     {
@@ -471,7 +479,7 @@ class EBArchitectureAPI extends EBAPIRoot
                     // Reset params, forces the network to be generated
                     function resetParams(next)
                     {
-                        const promise = process.reset();
+                        const promise = process.reset(-0.08, 0.08, "adamax", {});
                         promise.then(() => next(), (err) => next(err));
                     }
                 ], function(err)

@@ -20,9 +20,18 @@
 
 const
     async = require('async'),
+    bodyParser = require('body-parser'),
+    convict = require('convict'),
+    EBApplicationBase = require('../EBApplicationBase'),
+    EBClassFactory = require("../../shared/components/EBClassFactory"),
     EBModel = require('../../shared/models/EBModel'),
-    EBTorchProcess = require('./architecture/EBTorchProcess'),
+    EBNeuralTransformer = require("../../shared/components/architecture/EBNeuralTransformer"),
+    EBTorchProcess = require('./architecture/EBTorchProcessBase'),
+    express = require('express'),
+    flattener = require('../middleware/flattener'),
     fs = require('fs'),
+    http = require('http'),
+    httpStatus = require('http-status-codes'),
     path = require('path'),
     Promise = require('bluebird'),
     ReadWriteLock = require('rwlock');
@@ -31,7 +40,7 @@ const
  * This is the main class for bundled models. Feel free to modify this script as you like,
  * or embed it into a larger NodeJS application.
  */
-class EBBundleScript
+class EBBundleScript extends EBApplicationBase
 {
     /**
      * Constructor for the EBBundleScript object. It will load the model data contained within
@@ -41,10 +50,14 @@ class EBBundleScript
      */
     constructor(bundleFolder)
     {
+        super();
+
         if (!bundleFolder)
         {
             bundleFolder = __dirname;
         }
+
+        this.config = convict(this.configuration());
 
         const filename = path.join(bundleFolder, "model.json");
         const modelFileContents = fs.readFileSync(filename);
@@ -56,6 +69,24 @@ class EBBundleScript
     }
 
     /**
+     * Exposes configuration values
+     *
+     * @returns {object} The convict-configuration variables
+     */
+    configuration()
+    {
+        return {
+            port: {
+                doc: "The port to bind.",
+                format: "port",
+                default: 80,
+                env: "PORT",
+                arg: 'port'
+            }
+        };
+    }
+
+    /**
      * This function starts the model process. You must do this before processing
      * any data.
      *
@@ -63,32 +94,16 @@ class EBBundleScript
      */
     startModelProcess()
     {
-        this.modelProcess = new EBTorchProcess(this.model.architecture, this.bundleFolder);
-        return Promise.fromCallback((next) =>
+        const architecture = EBClassFactory.createObject(this.model.architecture);
+        const architecturePlugin = this.architectureRegistry.getPluginForArchitecture(architecture);
+        this.modelProcess = architecturePlugin.getTorchProcess(architecture, this.bundleFolder);
+
+        return this.modelProcess.generateCode(this.interpretationRegistry, this.neuralNetworkComponentDispatch).then(() =>
         {
-            async.series([
-                // Start up the process
-                (next) =>
-                {
-                    const promise = this.modelProcess.startProcess();
-                    promise.then(() =>
-                    {
-                        next(null);
-                    }, (err) => next(err));
-                },
-                // Load the model file from the disk
-                (next) =>
-                {
-                    const promise = this.modelProcess.loadModelFile();
-                    promise.then(() =>
-                    {
-                        return next();
-                    }, (err) =>
-                    {
-                        return next(err);
-                    });
-                }
-            ], next);
+            return this.modelProcess.startProcess();
+        }).then(() =>
+        {
+            return this.modelProcess.loadModelFile();
         });
     }
 
@@ -104,13 +119,12 @@ class EBBundleScript
         {
             this.lock.writeLock((release) =>
             {
-                const next = (err, results) =>
-                {
-                    release();
-                    return callback(err, results);
-                };
+                const inputTransformer = new EBNeuralTransformer(this.model.architecture.inputSchema);
+                const outputTransformer = new EBNeuralTransformer(this.model.architecture.outputSchema);
+                const stream = inputTransformer.createTransformationStream(this.interpretationRegistry);
 
-                const stream = this.model.architecture.getObjectTransformationStream();
+                let transformedObjects = [];
+
                 async.waterfall([
                     // Load the object into the process
                     (next) =>
@@ -118,18 +132,12 @@ class EBBundleScript
                         let processedIndex = 0;
                         stream.on('data', (data) =>
                         {
-                            stream.pause();
                             processedIndex += 1;
-                            const promise = this.modelProcess.loadObject(processedIndex.toString(), data.input, data.output);
-                            promise.then(() =>
+                            transformedObjects.push(data);
+                            if (processedIndex === objects.length)
                             {
-                                stream.resume();
-                                
-                                if (processedIndex === objects.length)
-                                {
-                                    return next();
-                                }
-                            }, (err) => next(err));
+                                return next();
+                            }
                         });
 
                         objects.forEach((object, objectIndex) =>
@@ -148,7 +156,7 @@ class EBBundleScript
                     (next) =>
                     {
                         // Process the provided object
-                        const promise = this.modelProcess.processObjects(objects.map((object, index) => (index + 1).toString()));
+                        const promise = this.modelProcess.processObjects(transformedObjects);
                         promise.then((results) =>
                         {
                             return next(null, results);
@@ -157,10 +165,10 @@ class EBBundleScript
                     // Convert the outputs
                     (results, next) =>
                     {
-                        async.mapSeries(results, (result, next) =>
+                        async.mapSeries(results.objects, (outputObject, next) =>
                         {
                             // TODO: FIX ME
-                            const promise = this.model.architecture.convertNetworkOutputObject(this.application.interpretationRegistry, result);
+                            const promise = outputTransformer.convertObjectOut(this.interpretationRegistry, outputObject);
                             promise.then((output) =>
                             {
                                 return next(null, output);
@@ -174,6 +182,7 @@ class EBBundleScript
                         return callback(err);
                     }
 
+                    release();
                     return callback(null, outputs);
                 });
             });
@@ -194,6 +203,72 @@ class EBBundleScript
             {
                 next(null);
             }, (err) => next(err));
+        });
+    }
+
+    
+    /**
+     * This function starts an API server containing the instance
+     *
+     * @returns {Promise} A promise that will resolve when the process is killed.
+     */
+    startAPIServer()
+    {
+        const expressApplication = express();
+
+        expressApplication.use((req, res, next) =>
+        {
+            if (req.headers['content-type'] && !req.headers['content-type'].startsWith('application/json') && !req.headers['content-type'].startsWith('application/offset+octet-stream'))
+            {
+                res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE);
+                res.send("Error: the only supported content type is application/json for API endpoints and application/offset+octet-stream for file uploads");
+            }
+            else
+            {
+                return next();
+            }
+        });
+
+        expressApplication.use(bodyParser.json({
+            inflate: true,
+            limit: '10mb'
+        }));
+
+        expressApplication.use(flattener);
+
+        const processRequest = (data, req, res, next) =>
+        {
+            this.processData([data]).then((results) =>
+            {
+                res.type('application/json');
+                res.status(httpStatus.OK);
+                res.send(results[0]);
+            }, (err) => {
+                res.type('application/json');
+                res.status(httpStatus.BAD_REQUEST);
+                res.send(err);
+            });
+        };
+
+        expressApplication.get('/', (req, res, next) =>
+        {
+            const data = req.query;
+            processRequest(data, req, res, next);
+        });
+
+        expressApplication.post('/', (req, res, next) =>
+        {
+            const data = req.body;
+            processRequest(data, req, res, next);
+        });
+
+        const server = http.createServer(expressApplication);
+        return Promise.fromCallback((done) =>
+        {
+            server.listen(this.config.get('port'), (err) =>
+            {
+                return done(err);
+            });
         });
     }
 }

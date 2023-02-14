@@ -37,13 +37,12 @@ const
 class EBStdioJSONStreamProcess extends EventEmitter
 {
     /**
-     * This method returns whether the stream is still running.
-     *
-     * @returns {boolean} True/false whether the process is still running
+     * Vanilla constructor
      */
-    get running()
+    constructor()
     {
-        return this.process.connected;
+        super();
+        this.running = true;
     }
 
     /**
@@ -86,6 +85,11 @@ class EBStdioJSONStreamProcess extends EventEmitter
      */
     write(object)
     {
+        if (!this.running)
+        {
+            return Promise.reject(new Error("Sub-process has crashed."));
+        }
+        
         return Promise.fromCallback((callback) =>
         {
             this.input.write(object, callback);
@@ -107,15 +111,23 @@ class EBStdioJSONStreamProcess extends EventEmitter
     waitForMatchingOutput(condition)
     {
         const self = this;
+
+        if (!this.running)
+        {
+            return Promise.reject(new Error("Sub-process has crashed."));
+        }
+
         return Promise.fromCallback((callback) =>
         {
             const predicate = underscore.matcher(condition);
-            let errorHandler;
+            let errorHandler = null;
             const dataHandler = (data) =>
             {
                 if (predicate(data))
                 {
                     self.removeListener('error', errorHandler);
+                    self.removeListener('exit', errorHandler);
+                    self.removeListener('close', errorHandler);
                     self.output.removeListener('data', dataHandler);
                     return callback(null, data);
                 }
@@ -124,12 +136,20 @@ class EBStdioJSONStreamProcess extends EventEmitter
             errorHandler = (error) =>
             {
                 self.removeListener('error', errorHandler);
+                self.removeListener('exit', errorHandler);
+                self.removeListener('close', errorHandler);
                 self.output.removeListener('data', dataHandler);
+                if (!error)
+                {
+                    return callback(new Error("Sub-process has crashed."), null);
+                }
                 return callback(error, null);
             };
 
             self.output.on('data', dataHandler);
             self.once('error', errorHandler);
+            self.once('exit', errorHandler);
+            self.once('close', errorHandler);
         });
     }
 
@@ -234,11 +254,13 @@ class EBStdioJSONStreamProcess extends EventEmitter
 
             jsonStreamProcess.process.on('close', (exitCode) =>
             {
+                jsonStreamProcess.running = false;
                 jsonStreamProcess.emit('close', exitCode);
             });
 
             jsonStreamProcess.process.on('disconnect', () =>
             {
+                jsonStreamProcess.running = false;
                 jsonStreamProcess.emit('disconnect');
             });
 
@@ -249,6 +271,7 @@ class EBStdioJSONStreamProcess extends EventEmitter
 
             jsonStreamProcess.process.on('exit', () =>
             {
+                jsonStreamProcess.running = false;
                 jsonStreamProcess.emit('exit');
             });
 

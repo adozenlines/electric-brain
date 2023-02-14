@@ -18,14 +18,7 @@
 
 "use strict";
 
-const
-    async = require('async'),
-    EBModel = require('../../shared/models/EBModel'),
-    EBTorchProcess = require('./architecture/EBTorchProcess'),
-    fs = require('fs'),
-    path = require('path'),
-    Promise = require('bluebird'),
-    ReadWriteLock = require('rwlock');
+const Promise = require('bluebird');
 
 /**
  * This class can be used as a base class for all electric brain scripts which receive commands via the standard console in

@@ -280,10 +280,13 @@ class EBFrontendAPI extends EBAPIRoot
                 });
             }
         });
-        
 
         // Every other path is considered to be the index page of the frontend
         expressApplication.use("/app/*", (req, res) =>
+        {
+            this.renderIndex(req, res);
+        });
+        expressApplication.use("/app", (req, res) =>
         {
             this.renderIndex(req, res);
         });

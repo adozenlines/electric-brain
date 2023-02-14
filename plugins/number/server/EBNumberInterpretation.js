@@ -25,7 +25,7 @@ const
     EBFieldMetadata = require('../../../shared/models/EBFieldMetadata'),
     EBInterpretationBase = require('./../../../server/components/datasource/EBInterpretationBase'),
     EBNeuralNetworkEditorModule = require('../../../shared/models/EBNeuralNetworkEditorModule'),
-    EBNeuralNetworkTemplateGenerator = require("../../../shared/models/EBNeuralNetworkTemplateGenerator"),
+    EBNeuralNetworkTemplateGenerator = require("../../../shared/components/EBNeuralNetworkTemplateGenerator"),
     EBNumberHistogram = require('../../../shared/models/EBNumberHistogram'),
     EBSchema = require("../../../shared/models/EBSchema"),
     underscore = require('underscore');
@@ -106,7 +106,7 @@ class EBNumberInterpretation extends EBInterpretationBase
         }
     }
 
-    
+
     /**
      * This method should transform a given schema for a value following this interpretation.
      * It should return a new schema for the interpreted version.
@@ -161,7 +161,7 @@ class EBNumberInterpretation extends EBInterpretationBase
         // Get the configuration
         const configuration = schema.configuration.interpretation;
 
-        if (configuration.mode === 'continuous')
+        if (configuration.mode === 'continuous_raw' || configuration.mode === 'continuous_normalized')
         {
             schema.configuration.component = {
                 layers: configuration.stack.fixedLayers
@@ -199,7 +199,7 @@ class EBNumberInterpretation extends EBInterpretationBase
         // Get the configuration
         const configuration = schema.configuration.interpretation;
 
-        if (configuration.mode === 'continuous')
+        if (configuration.mode === 'continuous_raw')
         {
             if (configuration.scalingFunction === 'linear')
             {
@@ -217,6 +217,11 @@ class EBNumberInterpretation extends EBInterpretationBase
             {
                 throw new Error(`Unknown scalingFunction '${configuration.scalingFunction}'`);
             }
+        }
+        else if (configuration.mode === 'continuous_normalized')
+        {
+            // Compute the z-score
+            return (value - schema.metadata.statistics.average) / schema.metadata.statistics.standardDeviation;
         }
         else if (configuration.mode === 'discrete')
         {
@@ -240,7 +245,7 @@ class EBNumberInterpretation extends EBInterpretationBase
     {
         // Get the configuration
         const configuration = schema.configuration.interpretation;
-        if (configuration.mode === 'continuous')
+        if (configuration.mode === 'continuous_raw')
         {
             if (configuration.scalingFunction === 'linear')
             {
@@ -258,6 +263,11 @@ class EBNumberInterpretation extends EBInterpretationBase
             {
                 throw new Error(`Unknown scalingFunction '${configuration.scalingFunction}'`);
             }
+        }
+        else if (configuration.mode === 'continuous_normalized')
+        {
+            // Take the z-score and compute the full value
+            return (value * schema.metadata.statistics.standardDeviation) + schema.metadata.statistics.average;
         }
         else if (configuration.mode === 'discrete')
         {
@@ -287,7 +297,7 @@ class EBNumberInterpretation extends EBInterpretationBase
     generateDefaultConfiguration(schema)
     {
         return {
-            mode: "continuous",
+            mode: "continuous_normalized",
             scalingFunction: "linear",
             stack: {
                 fixedLayers: EBNeuralNetworkTemplateGenerator.generateMultiLayerPerceptronTemplate('medium')
@@ -309,7 +319,7 @@ class EBNumberInterpretation extends EBInterpretationBase
     compareNetworkOutputs(expected, actual, schema, accumulateStatistics)
     {
         const configuration = schema.configuration.interpretation;
-        if (configuration.mode === 'continuous')
+        if (configuration.mode === 'continuous_raw' || configuration.mode === 'continuous_normalized')
         {
             if (accumulateStatistics)
             {
@@ -392,7 +402,39 @@ class EBNumberInterpretation extends EBInterpretationBase
 
             getFieldStatistics()
             {
-                return {numberHistogram: EBNumberHistogram.computeHistogram(this.values)};
+                const average = (data) =>
+                {
+                    const sum = data.reduce((sum, value) =>
+                    {
+                        return Number(sum) + Number(value);
+                    }, 0);
+
+                    const avg = sum / data.length;
+                    return avg;
+                };
+
+                const standardDeviation = (values) =>
+                {
+                    const avg = average(values);
+
+                    const squareDiffs = values.map((value) =>
+                    {
+                        const diff = Number(value) - avg;
+                        const sqrDiff = diff * diff;
+                        return sqrDiff;
+                    });
+
+                    const avgSquareDiff = average(squareDiffs);
+
+                    const stdDev = Math.sqrt(avgSquareDiff);
+                    return stdDev;
+                };
+
+                return {
+                    average: average(this.values),
+                    standardDeviation: standardDeviation(this.values),
+                    numberHistogram: EBNumberHistogram.computeHistogram(this.values)
+                };
             }
         })();
     }
@@ -429,7 +471,7 @@ class EBNumberInterpretation extends EBInterpretationBase
 
         return matchingValueIndex;
     }
-    
+
 
 
     /**
@@ -443,6 +485,8 @@ class EBNumberInterpretation extends EBInterpretationBase
             "id": "EBNumberInterpretation.statisticsSchema",
             "type": "object",
             "properties": {
+                average: {"type": "number"},
+                standardDeviation: {"type": "number"},
                 numberHistogram: EBNumberHistogram.schema()
             }
         };
@@ -462,7 +506,7 @@ class EBNumberInterpretation extends EBInterpretationBase
             "properties": {
                 "mode": {
                     "type": "string",
-                    "enum": ["discrete", "continuous"]
+                    "enum": ["discrete", "continuous_raw", "continuous_normalized"]
                 },
                 "scalingFunction": {
                     "type": "string",

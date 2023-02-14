@@ -16,36 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
+
+
 <div class="wrapper wrapper-content">
+    <eb-dynamic-directive directive-name="eb-edit-{{architectureType}}-architecture" architecture="architecture"></eb-dynamic-directive>
+
     <div class="row">
-        <div class="edit-architecture">
-            <div class="steps clearfix">
-                <ul>
-                    <li ui-sref-active="current">
-                        <a ui-sref=".select_data_source" class="btn-default"><span>1</span> Select Data Source</a>
-                    </li>
-                    <li ui-sref-active="current" ng-class="{disabled: !architecture.dataSource}">
-                        <a ng-show="architecture.dataSource" ui-sref=".select_fields" class="btn-default"><span>2</span> Select Fields</a>
-                        <a ng-show="!architecture.dataSource" class="btn-default"><span>2</span> Select Fields</a>
-                    </li>
-                    <!--<li ui-sref-active="current" ng-class="{disabled: !architecture.validInputOutputSchemas()}">-->
-                        <!--<a ng-show="architecture.validInputOutputSchemas()" ui-sref=".configure_fields" class="btn-default"><span>3</span> Configure Fields</a>-->
-                        <!--<a ng-show="!architecture.validInputOutputSchemas()" class="btn-default"><span>3</span> Configure Fields</a>-->
-                    <!--</li>-->
-                    <li ui-sref-active="current" ng-class="{disabled: !architecture.validInputOutputSchemas()}">
-                        <a ng-show="architecture.validInputOutputSchemas()" ui-sref=".design_architecture" class="btn-default"><span>3</span> Architecture</a>
-                        <a ng-show="!architecture.validInputOutputSchemas()" class="btn-default"><span>3</span> Customize Architecture</a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="content">
-                <div id="new-model-views" ui-view></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row" ng-if="architecture.dataSource">
         <div class="col-xs-12">
             <eb-loader-button on-click="onSaveClicked()" title="Save"></eb-loader-button>
             <eb-loader-button ng-if="$stateParams.id != 'new'" on-click="onDeleteClicked()" title="Delete"></eb-loader-button>

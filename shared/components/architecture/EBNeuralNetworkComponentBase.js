@@ -21,7 +21,7 @@
 const EBArchitectureElement = require('./EBArchitectureElement'),
     EBSchema = require("../../models/EBSchema"),
     EBTensorSchema = require("../../models/EBTensorSchema"),
-    EBTorchModule = require("../../models/EBTorchModule"),
+    EBTorchModule = require("./EBTorchModule"),
     underscore = require('underscore');
 
 /**
@@ -105,6 +105,7 @@ class EBNeuralNetworkComponentBase
      *
      * @param {EBSchema} schema The schema to generate this stack for
      * @param {EBTorchNode} inputNode The input node for this variable
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -112,7 +113,7 @@ class EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateInputStack(schema, inputNode)
+    generateInputStack(schema, inputNode, rootName)
     {
         throw new Error("Unimplemented");
     }
@@ -124,6 +125,7 @@ class EBNeuralNetworkComponentBase
      * @param {EBSchema} outputSchema The schema to generate this output stack for
      * @param {EBTorchNode} inputNode The input node for this stack
      * @param {EBTensorSchema} inputTensorSchema The schema for the intermediary tensors from which we construct this output stack
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -131,7 +133,7 @@ class EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateOutputStack(outputSchema, inputNode, inputTensorSchema)
+    generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName)
     {
         throw new Error("Unimplemented");
     }
@@ -163,7 +165,7 @@ class EBNeuralNetworkComponentBase
      *                  tensorSchema: EBTensorSchema // The resulting summary tensor schema. This will only ever be a tensor schema, never an object or array schema.
      *              }
      */
-    createSummaryModule(tensorSchema)
+    static createSummaryModule(tensorSchema)
     {
         // If the tensor schema is already a tensor, then no transformation is needed
         if (tensorSchema.isTensor)
@@ -177,7 +179,7 @@ class EBNeuralNetworkComponentBase
         else if (tensorSchema.isArray)
         {
             // First, run each of the items through summary network
-            const itemSummaryModule = this.createSummaryModule(tensorSchema.items);
+            const itemSummaryModule = EBNeuralNetworkComponentBase.createSummaryModule(tensorSchema.items);
             const selectTableModule = new EBTorchModule('nn.SelectTable', [2]);
             const summaryModule = new EBTorchModule('nn.MapTable', [itemSummaryModule.module]);
 
@@ -196,7 +198,7 @@ class EBNeuralNetworkComponentBase
         // For the object, we create a summary module for each property and then merge them together
         else if (tensorSchema.isObject)
         {
-            const subModules = tensorSchema.properties.map((property) => this.createSummaryModule(property));
+            const subModules = tensorSchema.properties.map((property) => EBNeuralNetworkComponentBase.createSummaryModule(property));
 
             // First, create a summary module for each corresponding property in the object
             const parallelModule = new EBTorchModule('nn.ParallelTable', [], subModules.map((subModule) => subModule.module));
@@ -234,7 +236,7 @@ class EBNeuralNetworkComponentBase
      * @param {string} name The name of the function to generate
      * @returns {string} The lua code to generate the empty tensor table
      */
-    generateEmptyTensorTableCode(tensorSchema, name)
+    static generateEmptyTensorTableCode(tensorSchema, name)
     {
         let code = '';
 
@@ -246,7 +248,7 @@ class EBNeuralNetworkComponentBase
             tensorSchema.properties.forEach((property) =>
             {
                 const subFunctionName = `${property.machineVariableName}_generateEmpty`;
-                const subFunctionCode = this.generateEmptyTensorTableCode(property, subFunctionName);
+                const subFunctionCode = EBNeuralNetworkComponentBase.generateEmptyTensorTableCode(property, subFunctionName);
                 code += `    ${subFunctionCode.replace(/\n/g, "\n    ")}`;
                 code += `table.insert(emptyObject, ${subFunctionName}())\n`;
             });

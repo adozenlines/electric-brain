@@ -12,6 +12,8 @@ Electric Brain has several major dependencies:
  - MongoDB >= 2.6
  - RabbitMQ
  - Torch
+ - Graphviz
+ - SQLLite3
 
 Installation of these four tools will vary greatly depending on your platform.
 
@@ -20,7 +22,7 @@ Installation of these four tools will vary greatly depending on your platform.
 On Ubuntu 16.04, several of the required tools can be installed with their required versions very easily from
 the mainline package repository.
 
-    user@machine:~$ sudo apt install mongodb rabbitmq-server nodejs
+    user@machine:~$ sudo apt install mongodb rabbitmq-server graphviz git build-essential libsqlite3-dev -y
 
 Torch must be installed separately. There are no easily available Ubuntu packages for Torch, because of its
 nature as an academic tool. The easiest way to install it is to follow their Getting Started Guide here: 
@@ -42,6 +44,7 @@ luarocks:
     user@machine:~$ sudo luarocks install rnn
     user@machine:~$ sudo luarocks install underscore
     user@machine:~$ sudo luarocks install luasocket
+    user@machine:~$ sudo luarocks install lsqlite3
 
 Now you can finally install Electric Brain via NPM. It must be installed globally using the -g command
 

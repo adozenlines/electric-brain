@@ -1,0 +1,173 @@
+<!--
+    Electric Brain is an easy to use platform for machine learning.
+    Copyright (C) 2016 Electric Brain Software Corporation
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<div class="row">
+    <div class="edit-matching-architecture">
+        <div class="steps clearfix">
+            <ul>
+                <li ng-class="{current: currentTab == 1}">
+                    <a class="btn-default" ng-click="currentTab = 1">
+                        <span ng-show="allDataSourcesSelected()"><i class="fa fa-check-circle"></i></span>
+                        <span>Select Data Sources</span>
+                    </a>
+                </li>
+                <li ng-class="{disabled: !allDataSourcesSelected(), current: currentTab == 2}">
+                    <a ng-show="allDataSourcesSelected()" class="btn-default" ng-click="currentTab = 2">
+                        <span ng-show="architecture.validInputOutputSchemas()"><i class="fa fa-check-circle"></i></span>
+                        <span>Select Fields</span>
+                    </a>
+                    <a ng-show="!allDataSourcesSelected()" class="btn-default">
+                        <span>Select Fields</span>
+                    </a>
+                </li>
+                <li ng-class="{disabled: !allDataSourcesSelected(), current: currentTab == 3}">
+                    <a ng-show="allDataSourcesSelected()" class="btn-default" ng-click="currentTab = 3">
+                        <span ng-show="architecture.validInputOutputSchemas()"><i class="fa fa-check-circle"></i></span>
+                        <span>Link Fields</span>
+                    </a>
+                    <a ng-show="!allDataSourcesSelected()" class="btn-default">
+                        <span>Link Fields</span>
+                    </a>
+                </li>
+                <li ng-class="{disabled: !(architecture.primaryLinkFields && architecture.primaryLinkFields.length > 0 && architecture.secondaryLinkFields && architecture.secondaryLinkFields.length > 0), current: currentTab == 4}">
+                    <a ng-show="(architecture.primaryLinkFields && architecture.primaryLinkFields.length > 0 && architecture.secondaryLinkFields && architecture.secondaryLinkFields.length > 0)" class="btn-default" ng-click="currentTab = 4">Customize Architecture</a>
+                    <a ng-hide="(architecture.primaryLinkFields && architecture.primaryLinkFields.length > 0 && architecture.secondaryLinkFields && architecture.secondaryLinkFields.length > 0)" class="btn-default">Customize Architecture</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row" ng-if="currentTab == 1">
+    <div class="col-md-12" ng-controller="EBMatchingArchitectureSelectDataSourcesController">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <h2>Name?</h2>
+                <div class="form-group">
+                    <div class="col-md-12">
+                        <input style="background-image: url(&quot;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAASCAYAAABSO15qAAAAAXNSR0IArs4c6QAAALZJREFUOBFjYKAANDQ0rGWiQD9IqzgL0BQ3IKMXiB8AcSKQ/waIrYDsKUD8Fir2pKmpSf/fv3+zgPxfzMzMSbW1tbeBbAaQC+b+//9fB4h9gOwikCAQTAPyDYHYBciuBQkANfcB+WZAbPP37992kBgIUOoFBiZGRsYkIL4ExJvZ2NhAXmFgYmLKBPLPAfFuFhaWJpAYEBQC+SeA+BDQC5UQIQpJYFgdodQLLyh0w6j20RCgUggAAEREPpKMfaEsAAAAAElFTkSuQmCC&quot;); background-repeat: no-repeat; background-attachment: scroll; background-size: 16px 18px; background-position: 98% 50%;" placeholder="Name" class="form-control" type="text" ng-model="architecture.name">
+                    </div>
+                </div>
+                <br/>
+                <br/>
+                <br/>
+                <h2>Select first data source?</h2>
+                <br/>
+                <eb-data-source-list filter="{isSampling: false}" selected-data-source="architecture.primaryDataSource" show-radio-selection="true"></eb-data-source-list>
+                <br/>
+                <br/>
+                <h2>Select second data source?</h2>
+                <br/>
+                <eb-data-source-list filter="{isSampling: false}" selected-data-source="architecture.secondaryDataSource" show-radio-selection="true"></eb-data-source-list>
+                <br/>
+                <br/>
+                <h2>Select linkages data source?</h2>
+                <br/>
+                <eb-data-source-list filter="{isSampling: false}" selected-data-source="architecture.linkagesDataSource" show-radio-selection="true"></eb-data-source-list>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" ng-if="currentTab == 2">
+    <div class="row" ng-controller="EBMatchingArchitectureSelectFieldsController">
+        <div class="col-md-6">
+            <eb-schema-editor title="First Schema" ng-if="architecture.primarySchema" schema="architecture.primarySchema" mode="filter" show-field-details="false"></eb-schema-editor>
+        </div>
+        <div class="col-md-6">
+            <eb-schema-editor title="Second Schema" ng-if="architecture.secondarySchema" schema="architecture.secondarySchema" mode="filter" show-field-details="false"></eb-schema-editor>
+        </div>
+    </div>
+</div>
+
+<div class="row" ng-if="currentTab == 3" ng-controller="EBMatchingArchitectureLinkFieldsController">
+    <eb-schema-linker left-schema="architecture.primarySchema"  right-schema="architecture.linkagesSchema" links="architecture.primaryLinkFields" left-title="Primary Schema" right-title="Linkages"></eb-schema-linker>
+    <eb-schema-linker left-schema="architecture.secondarySchema" right-schema="architecture.linkagesSchema" links="architecture.secondaryLinkFields" left-title="Secondary Schema" right-title="Linkages"></eb-schema-linker>
+</div>
+
+
+<div class="row" ng-if="currentTab == 4">
+    <div class="row design-architecture" ng-controller="EBMatchingArchitectureDesignArchitectureController">
+        <div class="col-md-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h1>Design Model</h1>
+                </div>
+                <div class="ibox-content">
+                    <div>
+                        <h2>Options</h2>
+
+                        <eb-schema-editor
+                                title="Primary Input"
+                                schema="architecture.primarySchema"
+                                mode="configure_neural_network_input"
+                                show-field-details="false"
+                                show-only-included="true">
+                        </eb-schema-editor>
+
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-4">
+                                <br>
+                                <h2>Primary Fully Connected Layers</h2>
+                                <br/>
+                                <eb-neural-stack-editor layers="architecture.primaryFixedLayers" mode="fixed"></eb-neural-stack-editor>
+                                <br/>
+                            </div>
+                        </div>
+
+                        <eb-schema-editor
+                                title="Secondary Input"
+                                schema="architecture.secondarySchema"
+                                mode="configure_neural_network_input"
+                                show-field-details="false"
+                                show-only-included="true">
+                        </eb-schema-editor>
+
+                        <div class="row">
+                            <div class="col-md-8 col-md-offset-4">
+                                <br>
+                                <h2>Secondary Fully Connected Layers</h2>
+                                <br/>
+                                <eb-neural-stack-editor layers="architecture.secondaryFixedLayers" mode="fixed"></eb-neural-stack-editor>
+                                <br/>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2>Network Diagram</h2>
+
+                        <eb-loader-button class="pull-right" on-click="reloadDiagrams()" title="Reload"></eb-loader-button>
+
+                        <uib-tabset active="currentDiagram" ng-if="diagrams">
+                            <uib-tab ng-repeat="diagram in diagrams" heading="{{diagram.file}}">
+                                <div>
+                                    <div class="architecture-diagram-container">
+                                        <img ez-plus
+                                             ezp-model="{large:'data:image/svg+xml;base64, ' + diagram.data}"
+                                             ezp-options="{scrollZoom: true, zoomWindowWidth: 600, zoomWindowHeight: 600}"
+                                             id="diagram_{{$index}}" src='data:image/svg+xml;base64, {{diagram.data}}' class="architecture-diagram"/>
+                                    </div>
+                                </div>
+                            </uib-tab>
+                        </uib-tabset>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

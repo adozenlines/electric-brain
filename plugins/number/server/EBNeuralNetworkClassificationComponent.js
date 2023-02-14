@@ -19,8 +19,8 @@
 "use strict";
 
 const EBNeuralNetworkComponentBase = require('../../../shared/components/architecture/EBNeuralNetworkComponentBase'),
-    EBTorchModule = require('../../../shared/models/EBTorchModule'),
-    EBTorchNode = require('../../../shared/models/EBTorchNode'),
+    EBTorchModule = require('../../../shared/components/architecture/EBTorchModule'),
+    EBTorchNode = require('../../../shared/components/architecture/EBTorchNode'),
     EBTensorSchema = require('../../../shared/models/EBTensorSchema'),
     EBNeuralNetworkEditorModule = require('../../../shared/models/EBNeuralNetworkEditorModule'),
     underscore = require('underscore');
@@ -167,6 +167,7 @@ class EBNeuralNetworkClassificationComponent extends EBNeuralNetworkComponentBas
      *
      * @param {EBSchema} schema The schema to generate this stack for
      * @param {EBTorchNode} inputNode The input node for this variable
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -174,10 +175,10 @@ class EBNeuralNetworkClassificationComponent extends EBNeuralNetworkComponentBas
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateInputStack(schema, inputNode)
+    generateInputStack(schema, inputNode, rootName)
     {
         return {
-            outputNode: new EBTorchNode(new EBTorchModule("nn.EBOneHot", [schema.enum.length]), inputNode, `${schema.machineVariableName}_inputStack`),
+            outputNode: new EBTorchNode(new EBTorchModule("nn.EBOneHot", [schema.enum.length]), inputNode, `${rootName}_${schema.machineVariableName}_inputStack`),
             outputTensorSchema: EBTensorSchema.generateDataTensorSchema(schema.enum.length, schema.variableName),
             additionalModules: []
         };
@@ -190,6 +191,7 @@ class EBNeuralNetworkClassificationComponent extends EBNeuralNetworkComponentBas
      * @param {EBSchema} outputSchema The schema to generate this output stack for
      * @param {EBTorchNode} inputNode The input node for this stack
      * @param {EBTensorSchema} inputTensorSchema The schema for the intermediary tensors from which we construct this output stack
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -197,16 +199,18 @@ class EBNeuralNetworkClassificationComponent extends EBNeuralNetworkComponentBas
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateOutputStack(outputSchema, inputNode, inputTensorSchema)
+    generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName)
     {
         // Get the output size
         const outputSize = outputSchema.enum.length;
-
+        
+        const moduleName = `${rootName}_${outputSchema.machineVariableName}`;
+        
         // Create a summary module for the input tensor
-        const summaryModule = this.createSummaryModule(inputTensorSchema);
+        const summaryModule = EBNeuralNetworkComponentBase.createSummaryModule(inputTensorSchema);
 
         // Create the node in the graph for the summary module
-        const summaryNode = new EBTorchNode(summaryModule.module, inputNode, `${outputSchema.machineVariableName}_summaryNode`);
+        const summaryNode = new EBTorchNode(summaryModule.module, inputNode, `${moduleName}_summaryNode`);
         
         const stack = EBNeuralNetworkEditorModule.createModuleChain(outputSchema.configuration.component.layers, summaryModule.tensorSchema, {
             outputSize: outputSize
@@ -215,7 +219,7 @@ class EBNeuralNetworkClassificationComponent extends EBNeuralNetworkComponentBas
         // Add in a soft-max at the end of the stack
         stack.module.addChildModule(new EBTorchModule("nn.LogSoftMax"));
 
-        const linearUnit = new EBTorchNode(stack.module, summaryNode, `${outputSchema.machineVariableName}_linearUnit`);
+        const linearUnit = new EBTorchNode(stack.module, summaryNode, `${moduleName}_linearUnit`);
         
         return {
             outputNode: linearUnit,

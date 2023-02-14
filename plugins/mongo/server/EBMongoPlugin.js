@@ -23,7 +23,7 @@ const
     EBDataSourcePlugin = require("../../../server/components/datasource/EBDataSourcePlugin"),
     EBSchemaDetector = require("../../../server/components/datasource/EBSchemaDetector"),
     EBPerformanceData = require('../../../shared/models/EBPerformanceData'),
-    EBPerformanceTrace = require('../../../shared/models/EBPerformanceTrace'),
+    EBPerformanceTrace = require('../../../shared/components/EBPerformanceTrace'),
     mongodb = require('mongodb'),
     Promise = require('bluebird'),
     queryUtilities = require("../../../shared/utilities/query"),
@@ -35,7 +35,7 @@ class EBMongoPlugin extends EBDataSourcePlugin
     /**
      *  The constructor for the EBCSVPlugin
      *
-     * @param {EBApplication} The global EBApplication object.
+     * @param {EBApplicationBase} The global EBApplication object.
      */
     constructor(application)
     {
@@ -43,7 +43,9 @@ class EBMongoPlugin extends EBDataSourcePlugin
 
         this.application = application;
         this.performanceData = new EBPerformanceData();
+        this.connections = {};
     }
+
 
     /**
      * This method returns the machine name for the data source
@@ -85,7 +87,7 @@ class EBMongoPlugin extends EBDataSourcePlugin
                 }
                 else
                 {
-                    return done();
+                    return db.close();
                 }
             });
         });
@@ -325,7 +327,7 @@ class EBMongoPlugin extends EBDataSourcePlugin
      */
     fetch(dataSource, query, limit)
     {
-        return mongodb.MongoClient.connect(dataSource.database.uri, {promiseLibrary: Promise}).then((db) =>
+        return this.getConnection(dataSource).then((db) =>
         {
             // Get the desired collection
             const collection = db.collection(dataSource.database.collection);
@@ -346,18 +348,33 @@ class EBMongoPlugin extends EBDataSourcePlugin
 
             return queryObject.toArray().then((rows) =>
             {
-                return db.close().then(() =>
+                return rows.map((row) =>
                 {
-                    return rows.map((row) =>
-                    {
-                        const newRow = EBMongoPlugin.convertMongoObjectToJSON(underscore.omit(row, "_id"));
-                        newRow.id = row._id;
-                        return newRow;
-                    });
+                    const newRow = EBMongoPlugin.convertMongoObjectToJSON(underscore.omit(row, "_id"));
+                    newRow.id = row._id;
+                    return newRow;
                 });
             });
         });
     }
+
+
+    /**
+     * This method returns the mongo db connection to a data source
+     *
+     * @param {EBDataSource} This should be an EBDataSource object that we need a connection for
+     * @returns {Promise} A promise that will resolve with the database object
+     */
+    getConnection(dataSource)
+    {
+        if (!this.connections[dataSource.database.uri])
+        {
+            this.connections[dataSource.database.uri] = mongodb.MongoClient.connect(dataSource.database.uri, {promiseLibrary: Promise});
+        }
+
+        return this.connections[dataSource.database.uri];
+    }
+
 
     /**
      * This static function is used to convert objects that come out of Mongo into pure JSON

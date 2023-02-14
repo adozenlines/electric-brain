@@ -44,7 +44,7 @@ angular.module('eb').service('EBArchitectureService', function EBArchitectureSer
             params: query,
             transformResponse(data, headersGetter, status)
             {
-                return {architectures: _.map(JSON.parse(data).architectures, (architecture) => new shared.models.EBArchitecture(architecture))};
+                return {architectures: _.map(JSON.parse(data).architectures, (architecture) => shared.components.EBClassFactory.createObject(architecture))};
             }
         });
     };
@@ -58,7 +58,7 @@ angular.module('eb').service('EBArchitectureService', function EBArchitectureSer
             headers,
             transformResponse(data, headersGetter, status)
             {
-                return new shared.models.EBArchitecture(JSON.parse(data));
+                return shared.components.EBClassFactory.createObject(JSON.parse(data));
             }
         });
     };

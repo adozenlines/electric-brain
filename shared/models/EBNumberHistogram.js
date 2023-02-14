@@ -18,7 +18,8 @@
 
 "use strict";
 
-const quantile = require("compute-quantile");
+const EBClassFactory = require("../components/EBClassFactory"),
+    quantile = require("compute-quantile");
 
 /**
  * This represents a histogram showing the most common values for a particular field.
@@ -33,6 +34,8 @@ class EBNumberHistogram
     constructor(rawHistogram)
     {
         const self = this;
+        
+        this.classType = 'EBNumberHistogram';
 
         if (!rawHistogram)
         {
@@ -167,5 +170,7 @@ class EBNumberHistogram
         };
     }
 }
+
+EBClassFactory.registerClass('EBNumberHistogram', EBNumberHistogram, EBNumberHistogram.schema());
 
 module.exports = EBNumberHistogram;

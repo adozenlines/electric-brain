@@ -23,7 +23,7 @@ const
     assert = require('assert'),
     EBApplication = require("../../server/EBApplication"),
     EBCSVPlugin = require("../../plugins/csv/server/EBCSVPlugin"),
-    EBTrainModelTask = require("../../server/tasks/EBTrainModelTask"),
+    EBTrainTransformModelTask = require("../../plugins/transform_architecture/server/EBTrainTransformModelTask"),
     EBModelTest = require("../utilities/EBModelTest"),
     fs = require('fs'),
     path = require('path'),
@@ -59,15 +59,7 @@ describe("End to end tests", function()
                         return done(err);
                     }
 
-                    require('../../server/tasks/task_registry').initializeRealtimeTaskObservation(application, (err) =>
-                    {
-                        if (err)
-                        {
-                            return done(err);
-                        }
-
-                        return done();
-                    });
+                    return done();
                 });
             });
         });
@@ -77,6 +69,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the copy-value data-set.", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "copy_value",
                 type: "mongo",
@@ -105,6 +98,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the dual-copy-value data-set.", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "dual_copy_value",
                 type: "mongo",
@@ -134,6 +128,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the sequence-copy data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "sequence_copy",
                 type: "mongo",
@@ -162,6 +157,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the sequence dual copy data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "sequence_dual_copy",
                 type: "mongo",
@@ -190,6 +186,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the sequence identification data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "sequence_identification",
                 type: "mongo",
@@ -218,6 +215,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the sequence classification data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "sequence_classification",
                 type: "mongo",
@@ -246,6 +244,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the number prediction from classification data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "number_prediction_from_classification",
                 type: "mongo",
@@ -274,6 +273,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the number mathematics data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "number_mathematics",
                 type: "mongo",
@@ -302,6 +302,7 @@ describe("End to end tests", function()
     it("Should be able to train a model using the number classification data set", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "number_classification",
                 type: "mongo",
@@ -367,6 +368,7 @@ describe("End to end tests", function()
             return csvPlugin.uploadFile(fileStream).then((id) =>
             {
                 const test = new EBModelTest({
+                    type: 'transform',
                     dataSource: {
                         name: "number_classification",
                         type: "csv",
@@ -388,9 +390,10 @@ describe("End to end tests", function()
     });
 
 
-    it.only("Should be able to train a model using date classification dataset", () =>
+    it("Should be able to train a model using date classification dataset", () =>
     {
         const test = new EBModelTest({
+            type: 'transform',
             dataSource: {
                 name: "date_classification",
                 type: "mongo",
@@ -404,7 +407,7 @@ describe("End to end tests", function()
             modelParameters: {
                 batchSize: 16,
                 testingBatchSize: 4,
-                iterations: 200
+                iterations: 500
             },
             results: {minimumAccuracy: 100}
         });

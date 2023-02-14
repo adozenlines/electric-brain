@@ -64,6 +64,17 @@ angular.module('eb').service('EBModelService', function EBModelService($rootScop
         });
     };
 
+    service.getModelResults = function getModelResults(id)
+    {
+        const headers = {};
+        return $http({
+            method: 'GET',
+            url: `/api/models/${id}/results`,
+            headers,
+            json: true
+        });
+    };
+
     service.saveModel = function saveModel(model)
     {
         const headers = {};
@@ -155,6 +166,17 @@ angular.module('eb').service('EBModelService', function EBModelService($rootScop
             data.push(dataPoint);
         }
         return data;
+    };
+
+    service.assembleBundle = function assembleBundle(model)
+    {
+        const headers = {};
+        return $http({
+            method: 'POST',
+            url: `/api/models/${model._id}/assemble_bundle`,
+            headers,
+            data: model
+        });
     };
 
     return service;

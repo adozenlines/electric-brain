@@ -60,7 +60,11 @@
                         <div class="col-sm-4"><input class="form-control" type="number" ng-model="sampleSize"></div>
                         <div class="col-sm-6"><p>The sample size determines how many rows / objects the engine will look at in order to determine the schema for the data. If your data has a lot of distinct classes, you may need to increase the sample size in order to capture them all properly.</p></div>
                     </div>
-
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">Allow Quoted Fields</label>
+                        <div class="col-sm-4"><input class="form-control" type="checkbox" ng-model="allowQuotedCSVFiles"></div>
+                        <div class="col-sm-6"><p>Whether or not you should allow quoted fields in your CSV file. You may need to disable this if your dataset contains quotes for other reasons, such as representing inches.</p></div>
+                    </div>
                 </div>
             </div>
         </div>

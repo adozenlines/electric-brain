@@ -20,7 +20,6 @@
 
 const
     async = require('async'),
-    config = require("../config/config"),
     EBAPIRoot = require('./EBAPIRoot'),
     idUtilities = require("../utilities/id"),
     models = require('../../shared/models/models'),
@@ -59,7 +58,7 @@ class EBDataSourceAPI extends EBAPIRoot
         const self = this;
         const uploadServer = new tus.Server();
         uploadServer.datastore = new tus.MongoGridFSStore({
-            uri: config.mongo.uri,
+            uri: this.application.config.get('mongo'),
             bucket: "uploads",
             path: '/api/uploads'
         });
@@ -476,6 +475,7 @@ class EBDataSourceAPI extends EBAPIRoot
 
             const newDataSource = req.body;
             newDataSource._id = id;
+            newDataSource.createdAt = new Date();
             self.dataSources.insert(newDataSource, function(err, info)
             {
                 if (err)
@@ -507,7 +507,7 @@ class EBDataSourceAPI extends EBAPIRoot
         
         const options = {
             sort: {
-                lastViewedAt: -1,
+                createdAt: -1,
                 _id: -1
             },
             limit: limit
@@ -546,7 +546,7 @@ class EBDataSourceAPI extends EBAPIRoot
      */
     getDataSource(req, res, next)
     {
-        this.dataSources.findOneAndUpdate({_id: Number(req.params.id)}, {$set: {lastViewedAt: new Date()}}, function(err, result)
+        this.dataSources.findOne({_id: Number(req.params.id)}, function(err, result)
         {
             if (err)
             {
@@ -558,7 +558,7 @@ class EBDataSourceAPI extends EBAPIRoot
             }
             else
             {
-                return next(null, result.value);
+                return next(null, result);
             }
         });
     }

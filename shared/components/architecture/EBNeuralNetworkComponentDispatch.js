@@ -229,6 +229,7 @@ class EBNeuralNetworkComponentDispatch
      *
      * @param {EBSchema} schema The schema to generate this stack for
      * @param {EBTorchNode} inputNode The input node for this variable
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -236,9 +237,9 @@ class EBNeuralNetworkComponentDispatch
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateInputStack(schema, inputNode)
+    generateInputStack(schema, inputNode, rootName)
     {
-        return this.getPluginForSchema(schema).generateInputStack(schema, inputNode);
+        return this.getPluginForSchema(schema).generateInputStack(schema, inputNode, rootName);
     }
 
 
@@ -248,6 +249,7 @@ class EBNeuralNetworkComponentDispatch
      * @param {EBSchema} outputSchema The schema to generate this output stack for
      * @param {EBTorchNode} inputNode The input node for this stack
      * @param {EBTensorSchema} inputTensorSchema The schema for the intermediary tensors from which we construct this output stack
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -255,9 +257,9 @@ class EBNeuralNetworkComponentDispatch
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateOutputStack(outputSchema, inputNode, inputTensorSchema)
+    generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName)
     {
-        return this.getPluginForSchema(outputSchema).generateOutputStack(outputSchema, inputNode, inputTensorSchema);
+        return this.getPluginForSchema(outputSchema).generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName);
     }
 
 

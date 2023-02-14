@@ -32,6 +32,7 @@ module.exports = {
     "neuralNetworkComponents": {
         'number': EBNeuralNetworkNumberComponent,
         'classification': EBNeuralNetworkClassificationComponent
-    }
+    },
+    "architecturePlugins": {}
 };
 

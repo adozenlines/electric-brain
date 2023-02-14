@@ -1,0 +1,7 @@
+{
+  "name": "eb-matching",
+  "description": "This plugin provides the matching architecture. This is a sophisticated architecture which allows many to many matching between two datasets, by using a third dataset of 'linkages' as a guide.",
+  "dependencies": {
+
+  }
+}

@@ -22,6 +22,7 @@ const
     EBFieldAnalysisAccumulatorBase = require('./../../../server/components/datasource/EBFieldAnalysisAccumulatorBase'),
     EBFieldMetadata = require('../../../shared/models/EBFieldMetadata'),
     EBInterpretationBase = require('./../../../server/components/datasource/EBInterpretationBase'),
+    EBNeuralNetworkTemplateGenerator = require("../../../shared/components/EBNeuralNetworkTemplateGenerator"),
     EBSchema = require('../../../shared/models/EBSchema'),
     EBValueHistogram = require("../../../shared/models/EBValueHistogram"),
     underscore = require('underscore');
@@ -160,7 +161,12 @@ class EBBooleanInterpretation extends EBInterpretationBase
         return new EBSchema({
             title: schema.title,
             type: "number",
-            configuration: {included: true}
+            configuration: {
+                included: true,
+                component: {
+                    layers: schema.configuration.interpretation.stack.fixedLayers
+                }
+            }
         });
     }
 
@@ -206,7 +212,12 @@ class EBBooleanInterpretation extends EBInterpretationBase
      */
     generateDefaultConfiguration(schema)
     {
-        return {};
+        return {
+            mode: "continuous_normalized",
+            stack: {
+                fixedLayers: EBNeuralNetworkTemplateGenerator.generateMultiLayerPerceptronTemplate('medium')
+            }
+        };
     }
 
 

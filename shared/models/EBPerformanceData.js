@@ -18,7 +18,8 @@
 
 "use strict";
 
-const EBRollingAverage = require('./EBRollingAverage');
+const EBRollingAverage = require('./EBRollingAverage'),
+    EBClassFactory = require("../components/EBClassFactory");
 
 /**
  * EBPerformanceData is a class that can be used for recording the performance of various steps within a system
@@ -33,6 +34,8 @@ class EBPerformanceData
      */
     constructor(rawPerformanceData)
     {
+        this.classType = 'EBPerformanceData';
+        
         if (!rawPerformanceData)
         {
             this.traceAverages = {};
@@ -102,5 +105,7 @@ class EBPerformanceData
         };
     }
 }
+
+EBClassFactory.registerClass('EBPerformanceData', EBPerformanceData, EBPerformanceData.schema());
 
 module.exports = EBPerformanceData;

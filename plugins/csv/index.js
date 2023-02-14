@@ -26,9 +26,9 @@ module.exports = {
     "folder": __dirname,
     "dataSources": {
         'csv': EBCSVPlugin
-    }
-
-
-    
+    },
+    "interpretations": {},
+    "neuralNetworkComponents": {},
+    "architecturePlugins": {}
 };
 

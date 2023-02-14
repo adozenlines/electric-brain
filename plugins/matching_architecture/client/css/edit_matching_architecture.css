@@ -1,0 +1,170 @@
+/*
+    Electric Brain is an easy to use platform for machine learning.
+    Copyright (C) 2016 Electric Brain Software Corporation
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+/*
+    edit-matching-architectures
+*/
+
+.edit-matching-architecture
+{
+    position: relative;
+}
+
+
+
+.edit-matching-architecture  .steps
+{
+    position: relative;
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.edit-matching-architecture.vertical > .steps
+{
+    display: inline;
+    float: left;
+    width: 25%;
+}
+
+.edit-matching-architecture  .steps ul
+{
+    list-style-type: none;
+    padding-left: 0px;
+}
+
+.edit-matching-architecture  .steps .number
+{
+    font-size: 1.429em;
+}
+
+.edit-matching-architecture  .steps > ul > li
+{
+    width: 25%;
+}
+
+.edit-matching-architecture  .steps > ul > li i
+{
+    color: #0086d1;
+    font-size: 16px;
+}
+
+.edit-matching-architecture  .steps > ul > li.current i
+{
+    display: none;
+}
+
+.edit-matching-architecture  .steps > ul > li,
+.edit-matching-architecture  .actions > ul > li
+{
+    float: left;
+}
+
+.edit-matching-architecture.vertical > .steps > ul > li
+{
+    float: none;
+    width: 100%;
+}
+
+.edit-matching-architecture  .steps a,
+.edit-matching-architecture  .steps a:hover,
+.edit-matching-architecture  .steps a:active
+{
+    display: block;
+    width: auto;
+    padding: 1em 0.5em;
+    text-decoration: none;
+}
+
+
+
+.edit-matching-architecture  .steps li:first-child a,
+.edit-matching-architecture  .steps li:first-child a:hover,
+.edit-matching-architecture  .steps li:first-child a:active
+{
+    -webkit-border-bottom-left-radius: 5px;
+    -moz-border-radius-bottomleft: 5px;
+    border-bottom-left-radius: 5px;
+
+    -webkit-border-top-left-radius: 5px;
+    -moz-border-radius-topleft: 5px;
+    border-top-left-radius: 5px;
+}
+
+
+
+.edit-matching-architecture  .steps li:last-child a,
+.edit-matching-architecture  .steps li:last-child a:hover,
+.edit-matching-architecture  .steps li:last-child a:active
+{
+    -webkit-border-bottom-right-radius: 5px;
+    -moz-border-radius-bottomright: 5px;
+    border-bottom-right-radius: 5px;
+
+    -webkit-border-top-right-radius: 5px;
+    -moz-border-radius-topright: 5px;
+    border-top-right-radius: 5px;
+}
+
+.edit-matching-architecture  .steps .disabled a,
+.edit-matching-architecture  .steps .disabled a:hover,
+.edit-matching-architecture  .steps .disabled a:active
+{
+    background: #eee;
+    color: #aaa;
+    cursor: default;
+}
+
+.edit-matching-architecture  .steps .current a,
+.edit-matching-architecture  .steps .current a:hover,
+.edit-matching-architecture  .steps .current a:active
+{
+    background: #2184be;
+    color: #fff;
+    cursor: default;
+}
+
+.edit-matching-architecture  .steps .done a,
+.edit-matching-architecture  .steps .done a:hover,
+.edit-matching-architecture  .steps .done a:active
+{
+    background: #9dc8e2;
+    color: #fff;
+}
+
+.edit-matching-architecture  .steps .error a,
+.edit-matching-architecture  .steps .error a:hover,
+.edit-matching-architecture  .steps .error a:active
+{
+    background: #ff3111;
+    color: #fff;
+}
+
+
+
+.architecture-input-configuration .panel-heading
+{
+    cursor: pointer;
+}
+
+.architecture-input-configuration .panel-body
+{
+    padding: 0;
+}

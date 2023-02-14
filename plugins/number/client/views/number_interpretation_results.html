@@ -4,7 +4,7 @@
     <eb-confusion-matrix ng-model="field.results.discreteValueConfusionMatrix"></eb-confusion-matrix>
 </div>
 
-<div ng-if="field.configuration.interpretation.mode === 'continuous'">
+<div ng-if="field.configuration.interpretation.mode === 'continuous_raw' || field.configuration.interpretation.mode === 'continuous_normalized'">
     <eb-confusion-chart ng-model="field.results.continuousValueConfusionChart"></eb-confusion-chart>
 </div>
 

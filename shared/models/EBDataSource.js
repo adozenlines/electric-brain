@@ -17,7 +17,8 @@
 */
 
 "use strict";
-const EBCustomQuery = require('./EBCustomQuery'),
+const EBClassFactory = require("../components/EBClassFactory"),
+    EBCustomQuery = require('./EBCustomQuery'),
     EBSchema = require('./EBSchema');
 
 
@@ -38,6 +39,8 @@ class EBDataSource
     constructor(rawDataSource)
     {
         const self = this;
+        this.type = 'EBDataSource';
+        
         Object.keys(rawDataSource).forEach(function(key)
         {
             if (key === 'dataSchema')
@@ -75,6 +78,7 @@ class EBDataSource
             "properties": {
                 "_id": {},
                 "name": {"type": "string"},
+                "type": {"type": "string"},
                 "objectsCompleted": {"type": "number"},
                 "objectsTotal": {"type": "number"},
                 "isSampling": {"type": "boolean"},
@@ -84,6 +88,9 @@ class EBDataSource
                 },
                 "sampleSize": {
                     "type": "number"
+                },
+                "allowQuotedCSVFiles": {
+                    "type": "boolean"
                 },
                 "file": {"type": "string"},
                 "database": {
@@ -100,5 +107,7 @@ class EBDataSource
         };
     }
 }
+
+EBClassFactory.registerClass('EBDataSource', EBDataSource, EBDataSource.schema());
 
 module.exports = EBDataSource;

@@ -17,7 +17,9 @@
  */
 
 "use strict";
-const underscore = require('underscore');
+
+const EBClassFactory = require("../components/EBClassFactory"),
+    underscore = require('underscore');
 
 const _mapping = Symbol("_mapping");
 const _knownValues = Symbol("_knownValues");
@@ -35,6 +37,7 @@ class EBConfusionChart
     constructor(rawConfusionChart)
     {
         const self = this;
+        this.classType = 'EBConfusionChart';
 
         if (!rawConfusionChart)
         {
@@ -106,5 +109,9 @@ class EBConfusionChart
         };
     }
 }
+
+
+EBClassFactory.registerClass('EBConfusionChart', EBConfusionChart, EBConfusionChart.schema());
+
 
 module.exports = EBConfusionChart;

@@ -35,7 +35,7 @@ class EBSchemaDetector
     /**
      * Creates a EBSchemaDetector
      * 
-     * @param {EBApplication} application The global application object.
+     * @param {EBApplicationBase} application The global application object.
      */
     constructor(application)
     {
@@ -95,6 +95,10 @@ class EBSchemaDetector
                 else if (underscore.isObject(value))
                 {
                     return Promise.resolve(this.interpretationMap['object']);
+                }
+                else if (underscore.isNull(value))
+                {
+                    return Promise.resolve(this.interpretationMap['string']);
                 }
                 else
                 {

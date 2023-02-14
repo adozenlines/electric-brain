@@ -19,8 +19,8 @@
 "use strict";
 
 const EBNeuralNetworkComponentBase = require('../../../shared/components/architecture/EBNeuralNetworkComponentBase'),
-    EBTorchModule = require('../../../shared/models/EBTorchModule'),
-    EBTorchNode = require('../../../shared/models/EBTorchNode'),
+    EBTorchModule = require('../../../shared/components/architecture/EBTorchModule'),
+    EBTorchNode = require('../../../shared/components/architecture/EBTorchNode'),
     EBTensorSchema = require('../../../shared/models/EBTensorSchema'),
     path = require('path'),
     underscore = require('underscore');
@@ -61,6 +61,10 @@ class EBNeuralNetworkWordComponent extends EBNeuralNetworkComponentBase
     {
         let code = '';
         code += `local ${name} = function (input)\n`;
+        code += `    local wordVector = self:getWordVector(input)\n`;
+        code += `    if wordVector ~= nil then\n`;
+        code += `       return wordVector\n`;
+        code += `    end\n`;
         code += `    local tensor = torch.DoubleTensor(#input)\n`;
         code += `    for n=1,#input do\n`;
         code += `       tensor[n] = string.byte(input, n)\n`;
@@ -130,6 +134,7 @@ class EBNeuralNetworkWordComponent extends EBNeuralNetworkComponentBase
      *
      * @param {EBSchema} schema The schema to generate this stack for
      * @param {EBTorchNode} inputNode The input node for this variable
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -137,10 +142,10 @@ class EBNeuralNetworkWordComponent extends EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateInputStack(schema, inputNode)
+    generateInputStack(schema, inputNode, rootName)
     {
         return {
-            outputNode: new EBTorchNode(new EBTorchModule("nn.EBWordEmbedder", [10000, `"${path.join(__dirname, '..', '..', '..', 'data', 'english_word_vectors.sqlite3')}"`]), inputNode, `${schema.machineVariableName}_inputStack`),
+            outputNode: new EBTorchNode(new EBTorchModule("nn.EBWordEmbedder", [10000]), inputNode, `${rootName}_${schema.machineVariableName}_inputStack`),
             outputTensorSchema: this.getTensorSchema(schema),
             additionalModules: []
         };
@@ -153,6 +158,7 @@ class EBNeuralNetworkWordComponent extends EBNeuralNetworkComponentBase
      * @param {EBSchema} outputSchema The schema to generate this output stack for
      * @param {EBTorchNode} inputNode The input node for this stack
      * @param {EBTensorSchema} inputTensorSchema The schema for the intermediary tensors from which we construct this output stack
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -160,7 +166,7 @@ class EBNeuralNetworkWordComponent extends EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateOutputStack(outputSchema, inputNode, inputTensorSchema)
+    generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName)
     {
         throw new Error("No output stack yet!");
     }

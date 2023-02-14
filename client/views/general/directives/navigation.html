@@ -58,16 +58,16 @@
                 <li uib-dropdown>
                     <a href uib-dropdown-toggle> Architectures <span class="caret"></span></a>
                     <ul role="menu" uib-dropdown-menu>
-                        <li ui-sref-active="active"><a ui-sref="edit_architecture({id: 'new'})">New</a></li>
+                        <li ui-sref-active="active"><a ui-sref="new_architecture({id: 'new'})">New</a></li>
                         <li role="separator" class="divider"></li>
                         <li class="navigation-menu-group-header"><span>Architectures</span></li>
-                        <li ng-repeat="architecture in architectures" ui-sref-active="active"><a ui-sref="edit_architecture.select_fields({id: architecture._id})">{{architecture.name}}</a></li>
+                        <li ng-repeat="architecture in architectures" ui-sref-active="active"><a ui-sref="edit_architecture({id: architecture._id})">{{architecture.name}}</a></li>
                         <li role="separator" class="divider"></li>
                         <li ui-sref-active="active"><a ui-sref="list_architectures">View all architectures</a></li>
                     </ul>
                 </li>
                 <li uib-dropdown>
-                    <a href uib-dropdown-toggle> Model <span class="caret"></span></a>
+                    <a href uib-dropdown-toggle> Models <span class="caret"></span></a>
                     <ul role="menu" uib-dropdown-menu>
                         <li ui-sref-active="active"><a ui-sref="new_model">Train New Model</a></li>
                         <li role="separator" class="divider"></li>
@@ -77,10 +77,12 @@
                         <li ui-sref-active="active"><a ui-sref="list_models">View all models</a></li>
                     </ul>
                 </li>
-            </ul>
-            <ul class="nav navbar-top-links navbar-right">
-                <li>
-
+                <li uib-dropdown>
+                    <a href uib-dropdown-toggle> Help <span class="caret"></span></a>
+                    <ul role="menu" uib-dropdown-menu>
+                        <li ui-sref-active="active"><a href="https://github.com/electricbrainio/electric-brain/issues">Submit a Bug</a></li>
+                        <li ui-sref-active="active"><a ng-click="showAboutUs()">About Us</a></li>
+                    </ul>
                 </li>
             </ul>
         </div>

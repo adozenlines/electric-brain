@@ -1,0 +1,7 @@
+{
+  "name": "eb-transform",
+  "description": "This plugin provides the transformation architectures, which are the vanilla, standard for of neural network. They have a basic input and create a basic output.",
+  "dependencies": {
+
+  }
+}

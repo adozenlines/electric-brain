@@ -1,16 +1,21 @@
 <div class="row">
-    <h2>Choose how the string should be processed?</h2>
+    <h2>Choose how the number should be processed?</h2>
     <br/>
     <eb-basic-radio-element ng-model="field.configuration.interpretation.mode" values="numberConfigurationValues" titles="numberConfigurationTitles"></eb-basic-radio-element>
 </div>
 
 
-<div ng-if="field.configuration.interpretation.mode === 'continuous'" class="row">
+<div ng-if="field.configuration.interpretation.mode === 'continuous_raw'" class="row">
     <br/>
     <br/>
     <h2>Define your scaling function</h2>
     <br/>
     <eb-basic-radio-element ng-model="field.configuration.interpretation.scalingFunction" values="scalingFunctionValues" titles="scalingFunctionTitles"></eb-basic-radio-element>
+</div>
+
+
+<div ng-if="field.configuration.interpretation.mode === 'continuous_normalized'" class="row">
+    <!-- nothing for now -->
 </div>
 
 <div ng-if="field.configuration.interpretation.mode === 'discrete'" class="row">

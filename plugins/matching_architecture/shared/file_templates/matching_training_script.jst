@@ -1,0 +1,524 @@
+require('torch')
+require('nn')
+require('nngraph')
+require('rnn')
+require('optim')
+require('mime')
+require('image')
+local _ = require('underscore')
+cjson = require('cjson')
+local JSON = require('./JSON')
+require('./EBDebug')
+require('./EBWrapDebug')
+require('./EBWrapTable')
+require('{{=it.primaryModuleName}}')
+require('{{=it.secondaryModuleName}}')
+local sqlite3 = require("lsqlite3")
+
+-- Define our object, MatchingTrainingScript.
+-- Do not change the name of this class!
+local MatchingTrainingScript = {}
+MatchingTrainingScript.__index = MatchingTrainingScript
+
+
+-- Creates the MatchingTrainingScript object.
+-- Do not change the name of this class
+function MatchingTrainingScript.new()
+    local self = {}
+
+    setmetatable(self, MatchingTrainingScript)
+
+    -- Connect to the other nodes in the process
+    self.ipctree = require 'ipc.LocalhostTree'(tonumber(arg[1]), tonumber(arg[2]))
+    self.allReduceSGD = require 'distlearn.AllReduceSGD'(self.ipctree)
+
+    -- Try and setup the GPU
+    local ok, cunn = pcall(require, 'cunn')
+    local ok2, cutorch = pcall(require, 'cutorch')
+    if ok and ok2 then
+        self.gpuEnabled = true
+        cutorch.setDevice(1)
+    else
+        self.gpuEnabled = false
+    end
+
+    -- generate SVG of the graph with the problem node highlighted
+    -- and hover over the nodes in svg to see the filename:line_number info
+    -- nodes will be annotated with local variable names even if debug mode is not enabled.
+    nngraph.setDebug(true)
+
+    -- Increase the stack limit
+    --print(coroutine)
+    --local olddefault = coroutine.cstacksize({{=(1024 * 1024 * 256)}})
+
+    -- Initialization optimization state
+    self.optimizationAlgorithm = 'adamax'
+    self.optimState = {}
+
+    -- Are the modules initialized
+    self.modulesInitialized = false
+
+    return self
+end
+
+function MatchingTrainingScript:createModules()
+    -- Create the main two neural networks required for the matching networks
+    -- They can be very different in construction, but must always output
+    -- The same shaped tensor at the end. This allows us to match together
+    -- very different datasets.
+    self.primaryModule = nn.{{=it.primaryModuleName}}(self)
+    self.secondaryModule = nn.{{=it.secondaryModuleName}}(self)
+    if self.gpuEnabled then
+        self.primaryModule:cuda()
+        self.secondaryModule:cuda()
+    end
+
+    -- Create a super-network, which combines the two subnetworks together, to be used for training
+    self.module = nn.ParallelTable()
+        :add(self.primaryModule)
+        :add(self.secondaryModule)
+
+    -- Create a copy of the main neural network module that will be used for saving
+    self.primaryModuleSaveCopy = nn.{{=it.primaryModuleName}}(self)
+    self.secondaryModuleSaveCopy = nn.{{=it.secondaryModuleName}}(self)
+    self.moduleSaveCopy = nn.ParallelTable()
+        :add(self.primaryModuleSaveCopy)
+        :add(self.secondaryModuleSaveCopy)
+
+    -- Create the main criterion for training
+    --self.criterion = nn.ModuleCriterion(nn.HingeEmbeddingCriterion(1), nn.PairwiseDistance(1))
+    self.criterion = nn.L1HingeEmbeddingCriterion(1)
+
+    if self.gpuEnabled then
+        self.criterion:cuda()
+    end
+    self.criterionClones = {}
+
+    -- Prepare the parameters
+    self.params, self.gradParams = self.module:getParameters()
+
+    -- Set the modules as initialized
+    self.modulesInitialized = true
+end
+
+function MatchingTrainingScript:localize(obj)
+    if self.gpuEnabled then
+        return obj:cuda()
+    else
+        return obj
+    end
+end
+
+
+function MatchingTrainingScript:evaluateTrainingIteration(primaryBatch, secondaryBatch, valences)
+    local batchOutputs
+    local outputs
+    local batchSize = #valences
+
+    {{= it.generateLocalizeFunction(it.primarySchema, "localizePrimaryRoot").replace(/\n/g, "\n    ") }}
+    {{= it.generateLocalizeFunction(it.secondarySchema, "localizeSecondaryRoot").replace(/\n/g, "\n    ") }}
+
+    if self.gpuEnabled then
+        primaryBatch = localizePrimaryRoot(primaryBatch)
+        secondaryBatch = localizeSecondaryRoot(secondaryBatch)
+    end
+
+    local iteration = function(params)
+        --if params_ ~= self.params then
+        --    self.params:copy(params_)
+        --end
+        self.gradParams:zero()
+
+        local expectedOutputs = {}
+        local loss = 0
+
+        ------------------- forward pass -------------------
+        self.module:training()
+
+        batchOutputs = self.module:forward({primaryBatch, secondaryBatch})
+
+        ------------------- criterion ----------------------
+        local primaryDerivatives = torch.Tensor(batchSize, 200)
+        local secondaryDerivatives = torch.Tensor(batchSize, 200)
+
+        for n=1,batchSize do
+            --print(batchOutputs[1])
+            local primaryItem = batchOutputs[1]:narrow(1, n, 1)
+            local secondaryItem = batchOutputs[2]:narrow(1, n, 1)
+            local valence = valences[n]
+
+            local currentLoss = self.criterion:forward({primaryItem, secondaryItem}, valence)
+
+            loss = loss + currentLoss
+            local criterionDerivatives = self.criterion:backward({primaryItem, secondaryItem}, valence)
+
+            primaryDerivatives:narrow(1, n, 1):copy(criterionDerivatives[1])
+            secondaryDerivatives:narrow(1, n, 1):copy(criterionDerivatives[2])
+        end
+
+        if self.gpuEnabled then
+            primaryDerivatives = primaryDerivatives:cuda()
+            secondaryDerivatives = secondaryDerivatives:cuda()
+        end
+
+        -- Now execute the backward pass on the primary and secondary modules
+        local inputDerivatives = self.module:backward({primaryBatch, secondaryBatch}, {primaryDerivatives, secondaryDerivatives})
+
+        -- clip gradient element-wise
+        self.gradParams:clamp(-5, 5)
+
+        -- Gather the grads from all nodes
+        self.allReduceSGD.sumAndNormalizeGradients({self.gradParams})
+
+        return loss / batchSize, self.gradParams
+    end
+
+    local _ignore, loss
+
+    _ignore, loss = optim[self.optimizationAlgorithm](iteration, self.params, self.optimState)
+
+    -- Collect gabarge at the end of each iteration - prevents build up of useless memory
+    collectgarbage()
+
+    return {
+        loss = loss[1],
+        output = batchOutputs
+    }
+end
+
+
+function MatchingTrainingScript:evaluateBatch(primaryBatch)
+    ------------------- forward pass -------------------
+    self.module:evaluate()
+
+    {{= it.generateLocalizeFunction(it.primarySchema, "localizePrimaryRoot").replace(/\n/g, "\n    ") }}
+
+    if self.gpuEnabled then
+        primaryBatch = localizePrimaryRoot(primaryBatch)
+    end
+
+    local batchOutputs = self.primaryModule:forward(primaryBatch)
+    return batchOutputs
+end
+
+
+-- This method prepares a batch consisting just of primary samples, used for evaluation
+function MatchingTrainingScript:preparePrimaryBatch(primarySamples)
+    -- We should have a list of primary samples, secondary samples, and their valences
+    {{= it.prepareBatch(it.primarySchema, "preparePrimaryRoot").replace(/\n/g, "\n    ") }}
+
+    local convertedPrimary = {}
+    for n=1,#primarySamples do
+        convertedPrimary[n] = self:convertPrimaryIn(primarySamples[n])
+    end
+
+    return preparePrimaryRoot(convertedPrimary)
+end
+
+
+-- This method prepares a single batch, composed of primary samples, secondary samples, and whether or not they are similar or different
+function MatchingTrainingScript:prepareBatch(primarySamples, secondarySamples, valences)
+    -- We should have a list of primary samples, secondary samples, and their valences
+    {{= it.prepareBatch(it.primarySchema, "preparePrimaryRoot").replace(/\n/g, "\n    ") }}
+    {{= it.prepareBatch(it.secondarySchema, "prepareSecondaryRoot").replace(/\n/g, "\n    ") }}
+
+    local convertedPrimary = {}
+    for n=1,#primarySamples do
+        convertedPrimary[n] = self:convertPrimaryIn(primarySamples[n])
+    end
+
+    local convertedSecondary = {}
+    for n=1,#secondarySamples do
+        convertedSecondary[n] = self:convertSecondaryIn(secondarySamples[n])
+    end
+
+    local batch = {
+        primary = preparePrimaryRoot(convertedPrimary),
+        secondary = prepareSecondaryRoot(convertedSecondary),
+        valences = valences
+    }
+
+    return batch
+end
+
+
+-- This method converts a primary-schema object into tensor format
+function MatchingTrainingScript:convertPrimaryIn(data1)
+    {{= it.convertDataIn(it.primarySchema, "convert").replace(/\n/g, "\n    ") }}
+    return convert(data1)
+end
+
+
+-- This method converts a secondary-schema object in
+function MatchingTrainingScript:convertSecondaryIn(data1)
+    {{= it.convertDataIn(it.secondarySchema, "convert").replace(/\n/g, "\n    ") }}
+    return convert(data1)
+end
+
+
+
+-- This method converts a Tensor to a plain vanilla array of numbers, so it can be output as JSON
+function MatchingTrainingScript:convertTensorToArray(data)
+    local array = {}
+    for n=1,data:size(2) do
+        table.insert(array, data[1][n])
+    end
+    return array
+end
+
+
+-- Return the word vector for a given string
+function MatchingTrainingScript:getWordVector(word)
+    if self.wordVectorDB == nil then
+        self.wordVectorDB = assert(sqlite3.open("{{=it.wordVectorDBPath}}"))
+        self.wordVectorRequest = assert(self.wordVectorDB:prepare("SELECT tensor FROM word_vectors WHERE word = ?"))
+    end
+
+    local outputTensor = torch.zeros(1, 300):double()
+    self.wordVectorRequest:bind_values(word)
+    local count = 0
+    for row in self.wordVectorRequest:nrows() do
+        count = count + 1
+        outputTensor[1]:copy(torch.deserialize(self.wordVectorRequest:get_value(0)))
+    end
+    self.wordVectorRequest:reset()
+
+    if count == 0 then
+        return nil
+    end
+    return outputTensor
+end
+
+
+-- This method can be used to send a log message upwards to Electric Brain, which
+-- will be visible on the ElectricBrain interface. Useful for debugging.
+function MatchingTrainingScript:log(message)
+    local stackInfo = debug.getinfo(2, 'fSl')
+    if stackInfo.func == print then
+        stackInfo = debug.getinfo(3, 'fSl')
+    end
+
+    local response = {
+        type = "log"
+    }
+
+    if torch.type(message) == 'string' then
+        response.message = message
+    else
+        response.message = JSON:encode(message, {}, {
+           pretty = true,
+           indent = "   ",
+           align_keys = false,
+        })
+
+        if not response.message then
+            response.message = tostring(message)
+        end
+    end
+
+    response.message = stackInfo.source .. ":" .. stackInfo.currentline .. "  " .. response.message
+
+    self:sendResponse(response)
+end
+
+
+-- This method sends a message to the ElectricBrain manager process.
+function MatchingTrainingScript:sendResponse(response)
+    io.write(cjson.encode(response) .. "\n")
+    io.flush()
+end
+
+-- This is the main loop which communicates with the manager process in Electric Brain code.
+-- Its generally best not to change this too much.
+function MatchingTrainingScript:enterTrainingLoop()
+    -- Now start waiting for messages from standard input
+    repeat
+        local commandString = io.read("*line")
+        local command = cjson.decode(commandString)
+        if command then
+            if command.type == "handshake" then
+                -- Send back a handshake response
+                self:sendResponse({type = "handshake"})
+            elseif command.type == "reset" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- Resets the model with randomly generated parameters
+                self.params:uniform(command.initializationRangeBottom, command.initializationRangeTop)
+                self.gradParams:zero()
+
+                -- Set the optimization parameters
+                self.optimizationAlgorithm = command.optimizationAlgorithm
+                self.optimState = command.optimizationParameters
+
+                self:sendResponse({type = "resetCompleted"})
+            elseif command.type == "iteration" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The iteration command advances the network with one forward and backward pass.
+                local batchFile = torch.load(command.batchFilename)
+                local batchSize = #batchFile.data.valences
+
+                local results = self:evaluateTrainingIteration(batchFile.data.primary, batchFile.data.secondary, batchFile.data.valences)
+
+                local primaryVectors = {}
+                local secondaryVectors = {}
+
+                for n = 1,batchSize do
+                    primaryVectors[batchFile.primaryIds[n]] = self:convertTensorToArray(results.output[1]:narrow(1, n, 1))
+                    secondaryVectors[batchFile.secondaryIds[n]] = self:convertTensorToArray(results.output[2]:narrow(1, n, 1))
+                end
+
+                local response = {
+                    primary = primaryVectors,
+                    secondary = secondaryVectors,
+                    type = "iterationCompleted",
+                    loss = results.loss
+                }
+                self:sendResponse(response)
+            elseif command.type == "prepareBatch" then
+                -- The prepare batch command assembles a batch and then writes it
+                -- out to a file, so that its ready to go for the main training
+                -- script
+                local batch = {
+                    data = self:prepareBatch(command.primarySamples, command.secondarySamples, command.valences),
+                    primaryIds = command.primaryIds,
+                    secondaryIds = command.secondaryIds
+                }
+
+                torch.save(command.fileName, batch)
+
+                self:sendResponse({type="batchPrepared", fileName=command.fileName})
+            elseif command.type == "stats" then
+                -- The 'stats' command is used to provide statistics up to the surrounding manager
+                -- code
+
+                -- Start with garbage collection, so we don't count anything we don't want
+
+                collectgarbage('collect')
+                local stats = {
+                    memoryUsage = collectgarbage('count')
+                }
+
+                self:sendResponse({type="stats", stats = stats})
+            elseif command.type == "evaluate" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The evaluate command runs an object through the network and
+                -- return the result
+                local batch = self:prepareInputBatch(command.samples)
+
+                local results = self:evaluateBatch(batch)
+
+                local convertedResults = {}
+                for n = 1,#results do
+                    local id = command.ids[n]
+                    local result = results[n]
+                    local converted = self:convertOutputOut(result)
+                    converted.id = id
+                    table.insert(convertedResults, converted)
+                end
+
+                local response = {
+                    type = "evaluationCompleted",
+                    objects = convertedResults
+                }
+
+                self:sendResponse(response)
+
+            elseif command.type == "evaluateBatch" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The evaluate command runs an object through the network and
+                -- return the result
+                local batchFile = torch.load(command.batchFilename)
+                local batch = batchFile.data
+                local batchSize = #batchFile.data.valences
+                local results = self:evaluateBatch(batch.primary)
+
+                local primaryVectors = {}
+
+                for n = 1,batchSize do
+                    primaryVectors[batchFile.primaryIds[n]] = self:convertTensorToArray(results:narrow(1, n, 1))
+                end
+
+                local response = {
+                    type = "evaluationCompleted",
+                    primary = primaryVectors
+                }
+                self:sendResponse(response)
+            elseif command.type == "save" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The save command causes the process to save the trained model out to disk
+                self.moduleSaveCopy:getParameters():copy(self.params)
+
+                torch.save("model.t7", {
+                    primaryModule = self.primaryModuleSaveCopy,
+                    secondaryModule = self.secondaryModuleSaveCopy
+                })
+                local response = {type = "saved"}
+                self:sendResponse(response)
+            elseif command.type == "load" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The load command causes the process to load the trained model from the disk
+                local module = torch.load("model.t7")
+                local moduleSaveCopy = torch.load("model.t7")
+
+                self.primaryModule = module.primaryModule
+                self.secondaryModule = module.secondaryModule
+
+                self.primaryModuleSaveCopy = moduleSaveCopy.primaryModule
+                self.secondaryModuleSaveCopy = moduleSaveCopy.secondaryModule
+
+                -- Create a super-network, which combines the two sub networks together, to be used for training
+                self.module = nn.ParallelTable()
+                    :add(self.primaryModule)
+                    :add(self.secondaryModule)
+
+                self.params, self.gradParams = self.module:getParameters()
+
+                local response = {type = "loaded"}
+                self:sendResponse(response)
+            elseif command.type == "synchronize" then
+                -- Initialize the model
+                if not self.modulesInitialized then
+                    self:createModules()
+                end
+
+                -- The synchronize command forces the process to synchronize its parameters with other processes
+                self.allReduceSGD.synchronizeParameters({self.params})
+                local response = {type = "synchronized"}
+                self:sendResponse(response)
+            end
+
+        end
+    until false == true -- Repeat forever. For some reason, the simple while True: doesn't actually work in Lua.
+end
+
+local script = MatchingTrainingScript.new()
+
+-- Override the print function
+print = function(message)
+    script:log(message)
+end
+
+script:enterTrainingLoop()

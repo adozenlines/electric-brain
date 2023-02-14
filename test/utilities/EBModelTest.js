@@ -22,10 +22,12 @@ const
     Ajv = require('ajv'),
     assert = require('assert'),
     EBApplication = require("../../server/EBApplication"),
-    EBTrainModelTask = require("../../server/tasks/EBTrainModelTask"),
+    EBTrainTransformModelTask = require("../../plugins/transform_architecture/server/EBTrainTransformModelTask"),
+    EBTransformArchitecture = require("../../plugins/transform_architecture/shared/models/EBTransformArchitecture"),
     idUtilities = require("../../server/utilities/id"),
     models = require("../../shared/models/models"),
-    Promise = require("bluebird");
+    Promise = require("bluebird"),
+    underscore = require('underscore');
 
 /**
  * This class is used to represent and create end-to-end tests easily. An EBModelTest is a unit test
@@ -84,7 +86,7 @@ class EBModelTest
         // The next step is to take that data source and create an EBArchitecture object
         function createArchitecture(dataSource)
         {
-            const architecture = new models.EBArchitecture({
+            const architecture = new EBTransformArchitecture({
                 name: dataSource.name,
                 dataSource: dataSource,
                 inputTransformations: [],
@@ -123,9 +125,11 @@ class EBModelTest
             const model = new models.EBModel({
                 name: architecture.name,
                 running: false,
-                architecture: architecture,
-                parameters: test.modelParameters
+                architecture: architecture
             });
+
+            // Modify the default parameters
+            model.parameters = underscore.extend(model.parameters, test.modelParameters);
 
             return Promise.fromCallback((next) =>
             {
@@ -143,7 +147,7 @@ class EBModelTest
         // Then we attempt to train that model
         function trainModel(model)
         {
-            const task = new EBTrainModelTask(application);
+            const task = new EBTrainTransformModelTask(application);
 
             // Create a fake Beaver task object
             const fakeBeaverTask = {

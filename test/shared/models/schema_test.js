@@ -2186,16 +2186,16 @@ describe("EBSchema tests", function()
     {
         it("should return null for intersections between two schema objects of different types", function()
         {
-            const firstSchema = new models.EBSchema({type: "string"});
-            const secondSchema = new models.EBSchema({type: "number"});
+            const primarySchema = new models.EBSchema({type: "string"});
+            const secondarySchema = new models.EBSchema({type: "number"});
 
-            assert.equal(firstSchema.intersection(secondSchema), null);
+            assert.equal(primarySchema.intersection(secondarySchema), null);
         });
 
 
         it("should return a schema containing only fields in common between the two schemas", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     first: {type: "string"},
@@ -2203,7 +2203,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     second: {type: "string"},
@@ -2211,7 +2211,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const intersectionSchema = firstSchema.intersection(secondSchema);
+            const intersectionSchema = primarySchema.intersection(secondarySchema);
 
             assert.deepEqual(intersectionSchema.allVariablePaths, [
                 "",
@@ -2222,7 +2222,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into sub object schemas and compute their intersections as well", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2239,7 +2239,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2252,7 +2252,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const intersectionSchema = firstSchema.intersection(secondSchema);
+            const intersectionSchema = primarySchema.intersection(secondarySchema);
 
             assert.deepEqual(intersectionSchema.allVariablePaths, [
                 "",
@@ -2264,7 +2264,7 @@ describe("EBSchema tests", function()
 
         it("should eliminate objects schemas that are left with no properties", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2281,7 +2281,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2294,7 +2294,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const intersectionSchema = firstSchema.intersection(secondSchema);
+            const intersectionSchema = primarySchema.intersection(secondarySchema);
 
             // Make sure firstObject does not show up in variablePaths
             assert.equal(intersectionSchema.allVariablePaths.indexOf(".firstObject"), -1);
@@ -2303,7 +2303,7 @@ describe("EBSchema tests", function()
 
         it("should eliminate array schemas who's items are left with no properties", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2319,7 +2319,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2335,7 +2335,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const intersectionSchema = firstSchema.intersection(secondSchema);
+            const intersectionSchema = primarySchema.intersection(secondarySchema);
 
             // Make sure firstObject does not show up in variablePaths
             assert.equal(intersectionSchema.allVariablePaths.indexOf(".firstArray"), -1);
@@ -2344,7 +2344,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into array schemas", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2360,7 +2360,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2376,7 +2376,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const intersectionSchema = firstSchema.intersection(secondSchema);
+            const intersectionSchema = primarySchema.intersection(secondarySchema);
 
             assert.deepEqual(intersectionSchema.allVariablePaths, [
                 "",
@@ -2392,16 +2392,16 @@ describe("EBSchema tests", function()
     {
         it("should the first schema when both schemas are different types", function()
         {
-            const firstSchema = new models.EBSchema({type: "string"});
-            const secondSchema = new models.EBSchema({type: "number"});
+            const primarySchema = new models.EBSchema({type: "string"});
+            const secondarySchema = new models.EBSchema({type: "number"});
 
-            assert.deepEqual(firstSchema.difference(secondSchema), new models.EBSchema({type: "string"}));
+            assert.deepEqual(primarySchema.difference(secondarySchema), new models.EBSchema({type: "string"}));
         });
 
 
         it("should return a schema containing only fields in the first schema that aren't in the second", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     first: {type: "string"},
@@ -2409,7 +2409,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     second: {type: "string"},
@@ -2417,7 +2417,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const differenceSchema = firstSchema.difference(secondSchema);
+            const differenceSchema = primarySchema.difference(secondarySchema);
 
             assert.deepEqual(differenceSchema.allVariablePaths, [
                 "",
@@ -2428,7 +2428,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into sub object schemas and compute the differences of their fields as well", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2445,7 +2445,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2458,7 +2458,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const differenceSchema = firstSchema.difference(secondSchema);
+            const differenceSchema = primarySchema.difference(secondarySchema);
 
             assert.deepEqual(differenceSchema.allVariablePaths, [
                 "",
@@ -2472,7 +2472,7 @@ describe("EBSchema tests", function()
 
         it("should eliminate objects schemas that are left with no properties", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2489,7 +2489,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2502,7 +2502,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const differenceSchema = firstSchema.difference(secondSchema);
+            const differenceSchema = primarySchema.difference(secondarySchema);
 
             // Make sure firstObject does not show up in variablePaths
             assert.equal(differenceSchema.allVariablePaths.indexOf(".firstObject"), -1);
@@ -2511,7 +2511,7 @@ describe("EBSchema tests", function()
 
         it("should eliminate array schemas who's items are left with no properties", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstField: {type: "string"},
@@ -2528,7 +2528,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2544,7 +2544,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const differenceSchema = firstSchema.difference(secondSchema);
+            const differenceSchema = primarySchema.difference(secondarySchema);
 
             // Make sure firstObject does not show up in variablePaths
             assert.equal(differenceSchema.allVariablePaths.indexOf(".firstArray"), -1);
@@ -2553,7 +2553,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into array schemas", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2569,7 +2569,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2585,7 +2585,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const differenceSchema = firstSchema.difference(secondSchema);
+            const differenceSchema = primarySchema.difference(secondarySchema);
 
             assert.deepEqual(differenceSchema.allVariablePaths, [
                 "",
@@ -2600,19 +2600,19 @@ describe("EBSchema tests", function()
     {
         it("should throw an error for unions between two schema objects of different types", function()
         {
-            const firstSchema = new models.EBSchema({type: "string"});
-            const secondSchema = new models.EBSchema({type: "number"});
+            const primarySchema = new models.EBSchema({type: "string"});
+            const secondarySchema = new models.EBSchema({type: "number"});
 
             assert.throws(function()
             {
-                firstSchema.union(secondSchema);
+                primarySchema.union(secondarySchema);
             });
         });
 
 
         it("should return a schema containing fields from both schemas", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     first: {type: "string"},
@@ -2620,7 +2620,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     second: {type: "string"},
@@ -2628,7 +2628,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const unionSchema = firstSchema.union(secondSchema);
+            const unionSchema = primarySchema.union(secondarySchema);
 
             assert.deepEqual(unionSchema.allVariablePaths, [
                 "",
@@ -2641,7 +2641,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into sub object schemas and compute their unions as well", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2658,7 +2658,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstObject: {
@@ -2671,7 +2671,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const unionSchema = firstSchema.union(secondSchema);
+            const unionSchema = primarySchema.union(secondarySchema);
 
             assert.deepEqual(unionSchema.allVariablePaths, [
                 "",
@@ -2687,7 +2687,7 @@ describe("EBSchema tests", function()
 
         it("should recurse into array schemas and compute their unions as well", function()
         {
-            const firstSchema = new models.EBSchema({
+            const primarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2703,7 +2703,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const secondSchema = new models.EBSchema({
+            const secondarySchema = new models.EBSchema({
                 type: "object",
                 properties: {
                     firstArray: {
@@ -2719,7 +2719,7 @@ describe("EBSchema tests", function()
                 }
             });
 
-            const unionSchema = firstSchema.union(secondSchema);
+            const unionSchema = primarySchema.union(secondarySchema);
 
             assert.deepEqual(unionSchema.allVariablePaths, [
                 "",

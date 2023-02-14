@@ -26,9 +26,9 @@ module.exports = {
     "folder": __dirname,
     "dataSources": {
         'mongo': EBMongoPlugin
-    }
-
-
-
+    },
+    "interpretations": {},
+    "neuralNetworkComponents": {},
+    "architecturePlugins": {}
 };
 

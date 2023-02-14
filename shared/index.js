@@ -22,5 +22,7 @@
  * This file just bundles up all of the shared code into a single easy to require module.
  */
 module.exports = {
-    models: require('./models/models')
+    components: require('./components/components'),
+    models: require('./models/models'),
+    plugins: require('../plugins/shared')
 };

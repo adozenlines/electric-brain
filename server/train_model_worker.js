@@ -23,7 +23,7 @@
 const
     async = require('async'),
     EBApplication = require("../server/EBApplication"),
-    EBTrainModelWorker = require("./tasks/EBTrainModelWorker");
+    EBTrainModelWorker = require("./../plugins/transform_architecture/server/EBTrainModelWorker");
 
 /**
  * This script starts the an electric brain worker

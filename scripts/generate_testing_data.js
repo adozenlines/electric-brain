@@ -66,6 +66,9 @@ module.exports.generateData = function generateData(next)
     }).then(() =>
     {
         return testingData.generateNumberPredictionFromClassificationDataset();
+    }).then(() =>
+    {
+        return testingData.generateMatchingTestDataset();
     }).then(() => next(), (err) => next(err));
 };
 

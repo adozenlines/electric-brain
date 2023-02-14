@@ -1,0 +1,19 @@
+<div class="row" ng-repeat="result in modelResults">
+    <div class="col-md-4">
+        <pre>{{result.primary | json}}</pre>
+    </div>
+    <div class="col-md-8">
+        <div class="row" ng-repeat="match in result.matches">
+            <div class="col-xs-2">
+                {{match.distance}}
+            </div>
+            <div class="col-xs-2">
+                <span ng-if="match.linkage">Linked</span>
+            </div>
+            <div class="col-xs-8">
+                <pre>{{match.object | json}}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+

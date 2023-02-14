@@ -22,9 +22,9 @@ const
     assert = require('assert'),
     EBNeuralNetworkComponentBase = require('../../../shared/components/architecture/EBNeuralNetworkComponentBase'),
     EBNeuralNetworkEditorModule = require("../../../shared/models/EBNeuralNetworkEditorModule"),
-    EBTorchCustomModule = require('../../../shared/models/EBTorchCustomModule'),
-    EBTorchModule = require('../../../shared/models/EBTorchModule'),
-    EBTorchNode = require('../../../shared/models/EBTorchNode'),
+    EBTorchCustomModule = require('../../../shared/components/architecture/EBTorchCustomModule'),
+    EBTorchModule = require('../../../shared/components/architecture/EBTorchModule'),
+    EBTorchNode = require('../../../shared/components/architecture/EBTorchNode'),
     EBTensorSchema = require('../../../shared/models/EBTensorSchema'),
     underscore = require('underscore');
 
@@ -152,7 +152,7 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
         code += itemSchemaCode;
 
         let emptyTensorFunctionName = `generateEmpty_${name}_item`;
-        let emptyTensorCode = this.generateEmptyTensorTableCode(this.neuralNetworkComponentDispatch.getTensorSchema(schema.items), emptyTensorFunctionName);
+        let emptyTensorCode = EBNeuralNetworkComponentBase.generateEmptyTensorTableCode(this.neuralNetworkComponentDispatch.getTensorSchema(schema.items), emptyTensorFunctionName);
         emptyTensorCode = `    ${emptyTensorCode.replace(/\n/g, "\n    ")}`;
         code += emptyTensorCode;
 
@@ -239,6 +239,7 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
      *
      * @param {EBSchema} schema The schema to generate this stack for
      * @param {EBTorchNode} inputNode The input node for this variable
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -246,19 +247,19 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateInputStack(schema, inputNode)
+    generateInputStack(schema, inputNode, rootName)
     {
         // Preliminary assertions
         assert(schema.isArray);
 
         // Get the tensor-schema for this array
         const tensorSchema = this.getTensorSchema(schema);
-        const moduleName = schema.machineVariablePath;
+        const moduleName = `${rootName}_${schema.machineVariablePath}`;
         
         // Create the input stack for the items of this array
         const subModuleName = `${moduleName}_itemInputStack`;
         const subModuleInputNode = new EBTorchNode(new EBTorchModule("nn.Identity", []), null, `${subModuleName}_input`);
-        const itemInputStack = this.neuralNetworkComponentDispatch.generateInputStack(schema.items, subModuleInputNode);
+        const itemInputStack = this.neuralNetworkComponentDispatch.generateInputStack(schema.items, subModuleInputNode, rootName);
         const subModule = new EBTorchCustomModule(subModuleName, subModuleInputNode, itemInputStack.outputNode, itemInputStack.additionalModules.map((module) => module.name));
 
         // Cleave off the length tensor at the beginning of the sequence
@@ -271,7 +272,7 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
         ]), sequenceNode, `${moduleName}_subModuleProcessor`);
 
         // Create a summary module to create tensors output of the items input stack that can be fed into the LSTM
-        const summaryModule = this.createSummaryModule(itemInputStack.outputTensorSchema);
+        const summaryModule = EBNeuralNetworkComponentBase.createSummaryModule(itemInputStack.outputTensorSchema);
         const summarizerModule = new EBTorchNode(new EBTorchModule(`nn.MapTable`, [summaryModule.module]), subModuleProcessor, `${moduleName}_summarizerNode`);
 
         // Unsqueeze the tensors to add in a time dimension
@@ -310,6 +311,7 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
      * @param {EBSchema} outputSchema The schema to generate this output stack for
      * @param {EBTorchNode} inputNode The input node for this stack
      * @param {EBTensorSchema} inputTensorSchema The schema for the intermediary tensors from which we construct this output stack
+     * @param {string} rootName The name of the stack, this prevents variable name collisions when there are multiple stacks
      * @returns {object} An object with the following structure:
      *                      {
      *                          "outputNode": EBTorchNode || null,
@@ -317,12 +319,12 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
      *                          "additionalModules": [EBCustomModule]
      *                      }
      */
-    generateOutputStack(outputSchema, inputNode, inputTensorSchema)
+    generateOutputStack(outputSchema, inputNode, inputTensorSchema, rootName)
     {
         // Preliminary assertions
         assert(outputSchema.isArray);
 
-        const moduleName = outputSchema.machineVariablePath;
+        const moduleName = `${rootName}_${outputSchema.machineVariablePath}`;
 
         // Create a node which extracts the sequence node
         const sequencePosition = inputTensorSchema.getPropertyIndex(`${moduleName}_lstmOutput`);
@@ -337,7 +339,7 @@ class EBNeuralNetworkSequenceComponent extends EBNeuralNetworkComponentBase
         // Now create an output stack that we can apply to each item
         const subModuleName = `${moduleName}_itemOutputStack`;
         const subModuleInputNode = new EBTorchNode(new EBTorchModule("nn.Identity", []), null, `${subModuleName}_input`);
-        const itemOutputStack = this.neuralNetworkComponentDispatch.generateOutputStack(outputSchema.items, subModuleInputNode, sequenceTensorSchema.items);
+        const itemOutputStack = this.neuralNetworkComponentDispatch.generateOutputStack(outputSchema.items, subModuleInputNode, sequenceTensorSchema.items, rootName);
         const subModule = new EBTorchCustomModule(subModuleName, subModuleInputNode, itemOutputStack.outputNode, itemOutputStack.additionalModules.map((module) => module.name));
         
         // Use MapTable to run each item through the output stack

@@ -21,7 +21,7 @@
 /**
  * The collection list is an element that allows you to view the list of tables/collections that are contained within a database
  */
-angular.module('eb').directive('ebNavigationBar', function ebNavigationBar($timeout, EBNavigationBarService, EBDataSourceService, EBArchitectureService, EBModelService)
+angular.module('eb').directive('ebNavigationBar', function ebNavigationBar($timeout, EBNavigationBarService, EBDataSourceService, EBArchitectureService, EBModelService, $uibModal, $http, EBHomeService)
 {
     const controller = function($scope)
     {
@@ -63,6 +63,21 @@ angular.module('eb').directive('ebNavigationBar', function ebNavigationBar($time
 
         EBNavigationBarService._directiveCallbacks.refreshNavigationBar = refreshNavigationBar;
         EBNavigationBarService._directiveCallbacks.setLoaderStatus = setLoaderStatus;
+        
+        $scope.showAboutUs = function()
+        {
+            const instance = $uibModal.open({
+                templateUrl: 'views/general/dialogs/about_dialog.html',
+                controller: 'EBAboutUsDialogController',
+                // windowClass: 'loader-button-confirmation',
+                backdrop: true,
+                resolve: {
+                    homeData: EBHomeService.getHomeData()
+                }
+            });
+
+            return instance.result;
+        };
     };
 
     return {
@@ -70,5 +85,18 @@ angular.module('eb').directive('ebNavigationBar', function ebNavigationBar($time
         controller,
         restrict: "E",
         scope: {}
+    };
+});
+
+
+angular.module('eb').controller('EBAboutUsDialogController', function EBAboutUsDialogController($scope, homeData, $uibModalInstance)
+{
+    $scope.homeData = homeData;
+
+    $scope.license = homeData.license.replace(/\n/g, '<br>');
+
+    $scope.ok = function()
+    {
+        $uibModalInstance.close(true);
     };
 });

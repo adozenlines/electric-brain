@@ -18,7 +18,8 @@
 
 "use strict";
 
-const EBTorchModule = require('./EBTorchModule'),
+const EBClassFactory = require("../components/EBClassFactory"),
+    EBTorchModule = require('./../components/architecture/EBTorchModule'),
     EBTensorSchema = require("./EBTensorSchema");
 
 /**
@@ -34,6 +35,7 @@ class EBNeuralNetworkEditorModule
     constructor(rawModule)
     {
         this.name = rawModule.name;
+        this.classType = 'EBNeuralNetworkEditorModule';
 
         for (let parameter of this.parameters)
         {
@@ -93,15 +95,28 @@ class EBNeuralNetworkEditorModule
 
             return new EBTorchModule(`${this.namespace}.${this.name}`, this.parameters.map((param) =>
             {
-                if (substitutionValues && substitutionValues[param.value])
-                {
-                    return substitutionValues[param.value];
-                }
-                else
-                {
-                    return param.value;
-                }
+                return this.getParameterValue(param.name, substitutionValues);
             }));
+        }
+    }
+
+
+
+    /**
+     * This function returns the value for the given parameter. Handles substitution and casting
+     *
+     * @param {string} parameter The name of the parameter
+     * @param {object} substitutionValues Any parameters for substitutions within the network - this allows filling in values within templates
+     */
+    getParameterValue(parameter, substitutionValues)
+    {
+        if (substitutionValues && substitutionValues[this[parameter]] !== undefined)
+        {
+            return substitutionValues[this[parameter]];
+        }
+        else
+        {
+            return Number(this[parameter]);
         }
     }
 
@@ -186,7 +201,8 @@ class EBNeuralNetworkEditorModule
             data[param.name] = param.defaultValue;
         });
 
-        return layerInfo;
+
+        return new EBNeuralNetworkEditorModule(data);
     }
 
 
@@ -419,11 +435,11 @@ EBNeuralNetworkEditorModule.knownLayers = {
         ],
         createModule: function(inputTensorSchema, substitutionValues)
         {
-            return new EBTorchModule("nn.Linear", [inputTensorSchema.tensorSize, substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize]);
+            return new EBTorchModule("nn.Linear", [inputTensorSchema.tensorSize, this.getParameterValue("outputSize", substitutionValues)]);
         },
         getOutputTensorSchema: function(inputTensorSchema, substitutionValues)
         {
-            return EBTensorSchema.generateDataTensorSchema(substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize, "output");
+            return EBTensorSchema.generateDataTensorSchema(this.getParameterValue("outputSize", substitutionValues), "output");
         }
     },
     SparseLinear: {
@@ -439,12 +455,24 @@ EBNeuralNetworkEditorModule.knownLayers = {
         ],
         createModule: function(inputTensorSchema, substitutionValues)
         {
-            return new EBTorchModule("nn.SparseLinear", [inputTensorSchema.tensorSize, substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize]);
+            return new EBTorchModule("nn.SparseLinear", [inputTensorSchema.tensorSize, this.getParameterValue("outputSize", substitutionValues)]);
         },
         getOutputTensorSchema: function(inputTensorSchema, substitutionValues)
         {
-            return EBTensorSchema.generateDataTensorSchema(substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize, "output");
+            return EBTensorSchema.generateDataTensorSchema(this.getParameterValue("outputSize", substitutionValues), "output");
         }
+    },
+    Dropout: {
+        name: 'Dropout',
+        moduleNamespace: 'nn',
+        fixed: true,
+        sequence: false,
+        parameters: [
+            {
+                name: 'p',
+                defaultValue: 0.4
+            }
+        ]
     },
     SeqBRNN: {
         name: 'SeqBRNN',
@@ -459,11 +487,11 @@ EBNeuralNetworkEditorModule.knownLayers = {
         ],
         createModule: function(inputTensorSchema, substitutionValues)
         {
-            return new EBTorchModule("nn.SeqBRNN", [inputTensorSchema.tensorSize, substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize]);
+            return new EBTorchModule("nn.SeqBRNN", [inputTensorSchema.tensorSize, this.getParameterValue("outputSize", substitutionValues)]);
         },
         getOutputTensorSchema: function(inputTensorSchema, substitutionValues)
         {
-            return EBTensorSchema.generateDataTensorSchema(substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize, "output");
+            return EBTensorSchema.generateDataTensorSchema(this.getParameterValue("outputSize", substitutionValues), "output");
         }
     },
     SeqLSTM: {
@@ -479,11 +507,11 @@ EBNeuralNetworkEditorModule.knownLayers = {
         ],
         createModule: function(inputTensorSchema, substitutionValues)
         {
-            return new EBTorchModule("nn.SeqLSTM", [inputTensorSchema.tensorSize, substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize]);
+            return new EBTorchModule("nn.SeqLSTM", [inputTensorSchema.tensorSize, this.getParameterValue("outputSize", substitutionValues)]);
         },
         getOutputTensorSchema: function(inputTensorSchema, substitutionValues)
         {
-            return EBTensorSchema.generateDataTensorSchema(substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize, "output");
+            return EBTensorSchema.generateDataTensorSchema(this.getParameterValue("outputSize", substitutionValues), "output");
         }
     },
     SeqGRU: {
@@ -499,15 +527,16 @@ EBNeuralNetworkEditorModule.knownLayers = {
         ],
         createModule: function(inputTensorSchema, substitutionValues)
         {
-            return new EBTorchModule("nn.SeqGRU", [inputTensorSchema.tensorSize, substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize]);
+            return new EBTorchModule("nn.SeqGRU", [inputTensorSchema.tensorSize, this.getParameterValue("outputSize", substitutionValues)]);
         },
         getOutputTensorSchema: function(inputTensorSchema, substitutionValues)
         {
-            return EBTensorSchema.generateDataTensorSchema(substitutionValues[this.outputSize] ? substitutionValues[this.outputSize] : this.outputSize, "output");
+            return EBTensorSchema.generateDataTensorSchema(this.getParameterValue("outputSize", substitutionValues), "output");
         }
-    },
+    }
 };
 
+EBClassFactory.registerClass('EBNeuralNetworkEditorModule', EBNeuralNetworkEditorModule, EBNeuralNetworkEditorModule.schema());
 
 module.exports = EBNeuralNetworkEditorModule;
 

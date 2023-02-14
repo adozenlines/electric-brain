@@ -17,7 +17,9 @@
 */
 
 "use strict";
-const underscore = require('underscore');
+
+const EBClassFactory = require("../components/EBClassFactory"),
+    underscore = require('underscore');
 
 const _mapping = Symbol("_mapping");
 const _knownValues = Symbol("_knownValues");
@@ -36,6 +38,8 @@ class EBConfusionMatrix
     constructor(data)
     {
         const self = this;
+        
+        this.classType = 'EBConfusionMatrix';
         
         if (!data)
         {
@@ -149,5 +153,7 @@ class EBConfusionMatrix
         };
     }
 }
+
+EBClassFactory.registerClass('EBConfusionMatrix', EBConfusionMatrix, EBConfusionMatrix.schema());
 
 module.exports = EBConfusionMatrix;

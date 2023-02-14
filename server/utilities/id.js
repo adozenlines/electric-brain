@@ -24,7 +24,7 @@
  * These ids will start at 0 and automatically increment, in a manner that is typical of
  * relational databases.
  *
- * @param {EBApplication} A global EBApplication object
+ * @param {EBApplicationBase} A global EBApplication object
  * @param {string} collectionName The name of the collection to get the ID for
  * @param {function(err, id)} callback The function to receive the results when its complete
  */

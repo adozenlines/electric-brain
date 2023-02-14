@@ -899,8 +899,8 @@ module.exports.generateDateClassificationDataset = function generateDateClassifi
         object.isWeekend = date.day() === 0 || date.day() === 6;
 
         // Which of the week in the month is it
-        const startWeek = moment(date).startOf('month').week();
-        object.weekInMonth = `week_${date.week() - startWeek + 1}`;
+        const startWeek = Math.floor(moment(date).startOf('month').dayOfYear() / 7);
+        object.weekInMonth = `week_${Math.floor(date.dayOfYear() / 7) - startWeek + 1}`;
 
         // Roughly what time of the day is it?
         if (date.hour() < 5)
@@ -923,10 +923,10 @@ module.exports.generateDateClassificationDataset = function generateDateClassifi
         {
             object.timeOfDay = 'late_night';
         }
-        
+
         // Which decade is it?
         object.decade = `decade_${Math.floor((date.year() - 1980) / 10) * 10 + 1980}`;
-        
+
         objects.push(object);
     }
 
@@ -934,5 +934,76 @@ module.exports.generateDateClassificationDataset = function generateDateClassifi
     {
         return saveObjectsToCSV(path.join(__dirname, "..", "data", "date_classification.csv"), objects);
     });
+};
+
+
+
+
+/**
+ *  This method is used to generate a data set for testing purposes.
+ *
+ *  This data set is used for testing the dataset matching functionality
+ *
+ *  @returns {Promise} A promise that will resolve when the data set is generated
+ */
+module.exports.generateMatchingTestDataset = function generateMatchingTestDataset()
+{
+    const letters = getLettersEnumeration();
+    const statuses = getStatusesEnumeration();
+    let objectIndex = 0;
+
+    let objects = [];
+    let linkages = [];
+
+    // Now we systematically generate every possible object
+    letters.forEach((firstLetter) =>
+    {
+        letters.forEach((secondLetter) =>
+        {
+            letters.forEach((thirdLetter) =>
+            {
+                statuses.forEach((status) =>
+                {
+                    // First, give the object two random letters and a random status
+                    const object = {
+                        link: objectIndex,
+                        firstLetter: firstLetter,
+                        secondLetter: secondLetter,
+                        thirdLetter: thirdLetter,
+                        status: status
+                    };
+
+                    objects.push(object);
+
+                    // Create a linkage object
+                    const linkage = {
+                        primaryLink: objectIndex,
+                        secondaryLink: objectIndex
+                    };
+
+                    linkages.push(linkage);
+
+                    objectIndex += 1;
+                });
+            });
+        });
+    });
+
+    return saveObjects("matching_test_primary", objects).then(() =>
+    {
+        return saveObjectsToCSV(path.join(__dirname, "..", "data", "matching_test_primary.csv"), objects);
+    }).then(() =>
+    {
+        return saveObjects("matching_test_secondary", objects);
+    }).then(() =>
+    {
+        return saveObjectsToCSV(path.join(__dirname, "..", "data", "matching_test_secondary.csv"), objects);
+    }).then(() =>
+    {
+        return saveObjects("matching_linkages", linkages);
+    }).then(() =>
+    {
+        return saveObjectsToCSV(path.join(__dirname, "..", "data", "matching_linkages.csv"), linkages);
+    })
 };
 

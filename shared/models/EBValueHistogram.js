@@ -18,7 +18,8 @@
 
 "use strict";
 
-const underscore = require('underscore');
+const EBClassFactory = require("../components/EBClassFactory"),
+    underscore = require('underscore');
 
 /**
  * This represents a histogram showing the most common values for a particular field.
@@ -119,5 +120,7 @@ class EBValueHistogram
         };
     }
 }
+
+EBClassFactory.registerClass('EBValueHistogram', EBValueHistogram, EBValueHistogram.schema());
 
 module.exports = EBValueHistogram;

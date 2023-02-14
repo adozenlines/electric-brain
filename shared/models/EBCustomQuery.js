@@ -18,6 +18,8 @@
 
 "use strict";
 
+const EBClassFactory = require("../components/EBClassFactory");
+
 /**
  * This represents a custom database query
  */
@@ -31,6 +33,8 @@ class EBCustomQuery
     constructor(rawCustomQuery)
     {
         const self = this;
+        
+        this.classType = "EBCustomQuery";
 
         if (!rawCustomQuery)
         {
@@ -99,5 +103,7 @@ class EBCustomQuery
         };
     }
 }
+
+EBClassFactory.registerClass('EBCustomQuery', EBCustomQuery, EBCustomQuery.schema());
 
 module.exports = EBCustomQuery;

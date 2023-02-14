@@ -8,17 +8,17 @@
                 </span>
             </div>
 
-            <div class="col-sm-7" ng-click="toggleLayerDetails($parent)" style="cursor: pointer;">
+            <div class="col-sm-6" ng-click="toggleLayerDetails($parent)" style="cursor: pointer;">
                 <h2>{{node.name}}</h2>
             </div>
         </div>
         <div ng-if="node.parameters.length === 0">
-            <div class="col-sm-7 col-sm-offset-2">
+            <div class="col-sm-6 col-sm-offset-2">
                 <h2>{{node.name}}</h2>
             </div>
         </div>
 
-        <div class="col-sm-3">
+        <div class="col-sm-4">
             <div class="pull-right" ui-tree-handle style="padding:0px;" title="Drag" ng-if="!node.locked">
                 <span class="btn btn-default">
                     <i class="fa fa-bars" style="font-size: 20px;"></i>

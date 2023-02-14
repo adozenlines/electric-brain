@@ -16,7 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
-<div ui-tree-handle class="tree-node tree-node-content" ng-click="toggleFieldSubSchema(field, this)" ng-class="{selected: field == selectedField, included: field.metadata.included}">
+<div ui-tree-handle class="tree-node tree-node-content schema-mode-{{mode}}" ng-click="toggleFieldSubSchema(field, this)" ng-class="{selected: field == selectedField, included: field.metadata.included}">
+    <div class="sub-properties-chevron linkage-element" ng-if="mode == 'linkage' && slotSide=='right'" ng-click="grabLink($event)">
+        <a class="btn btn-success btn-xs">
+            <span class="fa" ng-class="{'fa-circle': true}"></span>
+        </a>
+    </div>
     <div class="sub-properties-chevron">
         <a class="btn btn-success btn-xs" ng-if="field.type.includes('object') || field.type.includes('array')" data-nodrag>
             <span class="fa" ng-class="{'fa-chevron-right': field.configuration.open, 'fa-chevron-down': !field.configuration.open}"></span>
@@ -30,16 +35,21 @@
         <span class="checked-icon fa fa-check-square-o" ng-if="field.configuration.included"></span>
         <span class="checked-icon fa fa-square-o" ng-if="!field.configuration.included"></span>
     </div>
+    <div class="sub-properties-chevron linkage-element" ng-if="mode == 'linkage' && slotSide=='left'" ng-click="grabLink($event)">
+        <a class="btn btn-success btn-xs">
+            <span class="fa" ng-class="{'fa-circle': true}"></span>
+        </a>
+    </div>
 </div>
 <div ng-if="field.type.includes('object')">
     <ol ui-tree-nodes="" ng-model="field.properties" ng-class="{hidden: !field.configuration.open}">
-        <li ng-repeat="field in field.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" selected-field="$parent.$parent.$parent.selectedField">
+        <li ng-repeat="field in field.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" slot-side="{{slotSide}}" selected-field="$parent.$parent.$parent.selectedField">
         </li>
     </ol>
 </div>
 <div ng-if="field.type.includes('array') && field.items.type.includes('object')">
     <ol ui-tree-nodes="" ng-model="field.items.properties" ng-class="{hidden: !field.configuration.open}">
-        <li ng-repeat="field in field.items.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" selected-field="$parent.$parent.$parent.selectedField">
+        <li ng-repeat="field in field.items.properties" ng-show="!showOnlyIncluded || field.configuration.included" ui-tree-node eb-schema-editor-field="field" mode="{{mode}}" slot-side="{{slotSide}}" selected-field="$parent.$parent.$parent.selectedField">
         </li>
     </ol>
 </div>

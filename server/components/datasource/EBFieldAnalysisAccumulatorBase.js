@@ -22,7 +22,6 @@ const
     async = require('async'),
     crypto = require('crypto'),
     fileType = require('file-type'),
-    sharp = require("sharp"),
     underscore = require('underscore');
 
 /**

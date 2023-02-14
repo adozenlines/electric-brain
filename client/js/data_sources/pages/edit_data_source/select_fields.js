@@ -129,7 +129,7 @@ angular.module('eb').controller('EBDataSourceSelectFieldsController', function E
         const promise = EBDataSourceService.saveDataSource($scope.dataSource);
         promise.then(() =>
         {
-            $state.go('edit_architecture');
+            $state.go('new_architecture');
         });
         return promise;
     };
